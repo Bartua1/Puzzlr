@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mint-bg: #ecfdf5;
+  --color-mint-text: #047857;
+  --color-mint-hover: #d1fae5;
+  
+  --color-amber-bg: #fffbeb;
+  --color-amber-text: #b45309;
+  --color-amber-hover: #fef3c7;
+  
+  --color-lavender-bg: #faf5ff;
+  --color-lavender-text: #7e22ce;
+  --color-lavender-hover: #f3e8ff;
+  
+  --color-sky-bg: #f0f9ff;
+  --color-sky-text: #0369a1;
+  --color-sky-hover: #e0f2fe;
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900;
+  }
+}

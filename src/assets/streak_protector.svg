@@ -1,0 +1,28 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="44" fill="url(#glow-prot-3)" opacity="0.25"/>
+  <g filter="url(#shadow-prot-3)">
+    <!-- Outer Heart Casing -->
+    <path d="M 50 24 C 50 24, 38 12, 22 24 C 6 36, 18 64, 50 84 C 82 64, 94 36, 78 24 C 62 12, 50 24, 50 24 Z" fill="url(#grad-med-ring)" stroke="#c084fc" stroke-width="3.5"/>
+    <!-- Inner white padding -->
+    <path d="M 50 29 C 50 29, 41 19, 27 29 C 14 39, 24 62, 50 78 C 76 62, 86 39, 73 29 C 59 19, 50 29, 50 29 Z" fill="#ffffff" />
+    <!-- Faceted Crystal Heart -->
+    <path d="M 50 36 C 50 36, 44 28, 34 36 C 24 44, 32 60, 50 72 C 68 60, 76 44, 66 36 C 56 28, 50 36, 50 36 Z" fill="#06b6d4" />
+    <path d="M 50 36 C 50 36, 44 28, 34 36 C 29 40, 32 50, 50 62 Z" fill="#ecfeff" opacity="0.75" />
+    <path d="M 50 72 C 68 60, 76 44, 66 36 C 61 32, 56 34, 50 48 Z" fill="#0891b2" opacity="0.85" />
+  </g>
+  
+  <defs>
+    <radialGradient id="glow-prot-3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow-prot-3" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#1e3a8a" flood-opacity="0.2"/>
+    </filter>
+    <linearGradient id="grad-med-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7e22ce" />
+      <stop offset="50%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>

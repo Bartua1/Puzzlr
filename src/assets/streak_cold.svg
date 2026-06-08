@@ -1,0 +1,42 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="40" fill="url(#glow-cold-1)" opacity="0.25"/>
+  <g filter="url(#shadow-cold-1)">
+    <use href="#frozen-flame-core"/>
+  </g>
+  <!-- Floating Ice Crystals -->
+  <path d="M68 25 L70 28 L72 25 L70 22 Z" fill="#ffffff" />
+  <path d="M26 65 L27.5 67.5 L29 65 L27.5 62.5 Z" fill="#ffffff" opacity="0.8"/>
+  
+  <defs>
+    <radialGradient id="glow-cold-1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow-cold-1" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#1e3a8a" flood-opacity="0.2"/>
+    </filter>
+    <!-- Core Frozen Flame Design -->
+    <g id="frozen-flame-core">
+      <!-- Outer Frozen Flame -->
+      <path d="M50 15 C62 30 75 45 75 62 C75 75 64 85 50 85 C36 85 25 75 25 62 C25 45 38 30 50 15 Z" fill="url(#grad-cold-outer)" />
+      <!-- Middle Frozen Flame -->
+      <path d="M50 30 C58 42 66 52 66 65 C66 74 59 81 50 81 C41 81 34 74 34 65 C34 52 42 42 50 30 Z" fill="url(#grad-cold-mid)" />
+      <!-- Inner Frost Core -->
+      <path d="M50 48 C54 56 58 62 58 70 C58 75 54 79 50 79 C46 79 42 75 42 70 C42 62 46 56 50 48 Z" fill="url(#grad-cold-inner)" />
+    </g>
+    <linearGradient id="grad-cold-outer" x1="50%" y1="15%" x2="50%" y2="85%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <linearGradient id="grad-cold-mid" x1="50%" y1="30%" x2="50%" y2="81%">
+      <stop offset="0%" stop-color="#a5f3fc" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+    <linearGradient id="grad-cold-inner" x1="50%" y1="48%" x2="50%" y2="79%">
+      <stop offset="0%" stop-color="#ecfeff" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,29 @@
+import React from 'react';
+
+interface LogoProps {
+  className?: string;
+  size?: number;
+}
+
+export const Logo: React.FC<LogoProps> = ({ className = '', size = 40 }) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="100" height="100" rx="0" fill="#e0f2fe"/>
+      <rect x="22" y="32" width="56" height="50" rx="14" fill="#a78bfa" />
+      <path d="M22 42 L50 32 L78 42" fill="#c084fc" opacity="0.5"/>
+      <circle cx="40" cy="54" r="4" fill="#ffffff"/>
+      <path d="M56 54 Q60 50 64 54" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="34" cy="62" r="3.5" fill="#f43f5e" opacity="0.6"/>
+      <circle cx="66" cy="62" r="3.5" fill="#f43f5e" opacity="0.6"/>
+      <path d="M46 62 Q50 66 54 62" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+      <path d="M40 32 L44 22 L50 27 L56 22 L60 32 Z" fill="#fbbf24" stroke="#d97706" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
+  );
+};

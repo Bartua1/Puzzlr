@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Soft Ambient Glow -->
+  <circle cx="50" cy="50" r="42" fill="url(#glow2)" opacity="0.25"/>
+  
+  <!-- Nuggets with Shadow -->
+  <g filter="url(#shadow2)">
+    <!-- Back nugget -->
+    <g transform="translate(10, -5) scale(0.85)">
+      <path d="M42 22 L65 25 L82 45 L73 72 L45 80 L23 68 L18 42 Z" fill="#ea580c" />
+      <polygon points="42,22 65,25 52,48 35,42" fill="#ffedd5" opacity="0.85" />
+      <polygon points="65,25 82,45 68,58 52,48" fill="#fdba74" opacity="0.9" />
+      <polygon points="82,45 73,72 50,68 68,58" fill="#9a3412" />
+      <polygon points="73,72 45,80 38,58 50,68" fill="#7c2d12" />
+      <polygon points="45,80 23,68 35,50 38,58" fill="#c2410c" />
+      <polygon points="23,68 18,42 35,42 35,50" fill="#f97316" />
+      <polygon points="18,42 42,22 35,42" fill="#fdb883" />
+    </g>
+    <!-- Front nugget (overlapping) -->
+    <g transform="translate(-10, 8) scale(0.8) rotate(-15 50 50)">
+      <path d="M42 22 L65 25 L82 45 L73 72 L45 80 L23 68 L18 42 Z" fill="#ea580c" />
+      <polygon points="42,22 65,25 52,48 35,42" fill="#ffedd5" opacity="0.85" />
+      <polygon points="65,25 82,45 68,58 52,48" fill="#fdba74" opacity="0.9" />
+      <polygon points="82,45 73,72 50,68 68,58" fill="#9a3412" />
+      <polygon points="73,72 45,80 38,58 50,68" fill="#7c2d12" />
+      <polygon points="45,80 23,68 35,50 38,58" fill="#c2410c" />
+      <polygon points="23,68 18,42 35,42 35,50" fill="#f97316" />
+      <polygon points="18,42 42,22 35,42" fill="#fdb883" />
+    </g>
+  </g>
+  
+  <!-- Sparkles -->
+  <path d="M52 24 L53.5 27 L56 28 L53.5 29 L52 32 L50.5 29 L48 28 L50.5 27 Z" fill="#ffffff" />
+  <path d="M28 38 L29.5 41 L32 42 L29.5 43 L28 46 L26.5 43 L24 42 L26.5 41 Z" fill="#ffffff" opacity="0.8"/>
+  
+  <defs>
+    <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow2" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#451a03" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+</svg>
