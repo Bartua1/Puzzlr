@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Users,
   X,
-  BarChart2
+  BarChart2,
+  Menu
 } from 'lucide-react';
 import coinX3 from '../assets/coin_x3.svg';
 import { Browser } from '@capacitor/browser';
@@ -120,6 +121,7 @@ export const GroupDetails = () => {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showPlayedModal, setShowPlayedModal] = useState<{ gameId: string; gameName: string } | null>(null);
   const [archiveSeasons, setArchiveSeasons] = useState<any[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -303,11 +305,20 @@ export const GroupDetails = () => {
 
   if (loading || !group) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin"></div>
-          <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">{t('app.loading')}</p>
-        </div>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-violet-100 via-indigo-50 to-emerald-50 text-slate-800 pt-safe font-sans">
+        <header className="flex items-center px-6 py-4" style={{ minHeight: '72px' }}>
+          <Link
+            to="/"
+            onClick={() => triggerHapticClick()}
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95"
+            title={t('groupDetails.backBtn')}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center pb-24">
+          <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
+        </main>
       </div>
     );
   }
@@ -528,6 +539,13 @@ export const GroupDetails = () => {
 
       {/* 1. TOP HEADER SECTION — sticky with fade-to-transparent gradient below */}
       <header className="sticky top-0 z-20 pointer-events-none">
+        {/* Click-outside backdrop when menu is open */}
+        {isMenuOpen && (
+          <div
+            className="fixed inset-0 z-25 pointer-events-auto cursor-default bg-black/[0.03]"
+            onClick={() => setIsMenuOpen(false)}
+          />
+        )}
         {/* Gradient fade that masks content scrolling under the nav */}
         <div className="absolute inset-0 bg-gradient-to-b from-violet-100/95 via-violet-100/80 to-transparent backdrop-blur-[2px]" />
 
@@ -560,7 +578,7 @@ export const GroupDetails = () => {
               {todayParticipants.slice(0, 5).map((part, idx) => (
                 <div
                   key={part.id}
-                  className="w-6 h-6 rounded-full border border-white bg-white flex items-center justify-center shadow-sm overflow-visible"
+                  className="w-6 h-6 flex items-center justify-center relative overflow-visible"
                   style={{ zIndex: 10 - idx }}
                   title={part.username}
                 >
@@ -568,6 +586,8 @@ export const GroupDetails = () => {
                     characterKey={getCosmeticKey(part.equipped_character_id)}
                     badgeKey={getCosmeticKey(part.equipped_badge_id)}
                     size="xs"
+                    borderClass="border-white"
+                    shadowClass="shadow-sm"
                   />
                 </div>
               ))}
@@ -579,37 +599,65 @@ export const GroupDetails = () => {
             </div>
           </div>
 
-          {/* Top right part: Archive, Stats & Settings — stacked vertically, absolutely positioned */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5">
-            <button
-              onClick={openArchive}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95"
-              title={t('groupDetails.archiveBtn')}
-            >
-              <History className="w-5 h-5" />
-            </button>
-
+          {/* Top right part: Menu Button */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center z-30">
             <button
               onClick={async () => {
                 await triggerHapticClick();
-                navigate(`/group/${groupId}/stats`);
+                setIsMenuOpen(!isMenuOpen);
               }}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95"
-              title={t('groupDetails.statsBtn', 'Stats')}
+              className={`w-9 h-9 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95 relative ${
+                isMenuOpen ? 'bg-white/60 text-slate-900' : ''
+              }`}
+              title={t('groupDetails.menuBtn', 'Menu')}
             >
-              <BarChart2 className="w-5 h-5" />
+              <Menu className={`w-5 h-5 absolute transition-all duration-350 ${isMenuOpen ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+              <X className={`w-5 h-5 absolute transition-all duration-350 ${isMenuOpen ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
             </button>
 
-            <button
-              onClick={async () => {
-                await triggerHapticClick();
-                navigate(`/group/${groupId}/manage-games`);
-              }}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95"
-              title={t('groupDetails.settingsBtn')}
+            {/* Dropdown Menu */}
+            <div
+              className={`absolute top-full right-0 mt-2 flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur-md border border-white/60 p-1.5 rounded-2xl shadow-xl transition-all duration-300 origin-top z-30 ${
+                isMenuOpen
+                  ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+                  : 'opacity-0 scale-90 -translate-y-4 pointer-events-none'
+              }`}
             >
-              <SettingsIcon className="w-5 h-5" />
-            </button>
+              <button
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await openArchive();
+                }}
+                className="p-2 text-slate-650 hover:text-indigo-650 hover:bg-indigo-50/50 rounded-xl transition-all active:scale-95 flex items-center justify-center"
+                title={t('groupDetails.archiveBtn')}
+              >
+                <History className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await triggerHapticClick();
+                  navigate(`/group/${groupId}/stats`);
+                }}
+                className="p-2 text-slate-655 hover:text-indigo-650 hover:bg-indigo-50/50 rounded-xl transition-all active:scale-95 flex items-center justify-center"
+                title={t('groupDetails.statsBtn', 'Stats')}
+              >
+                <BarChart2 className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await triggerHapticClick();
+                  navigate(`/group/${groupId}/manage-games`);
+                }}
+                className="p-2 text-slate-655 hover:text-indigo-650 hover:bg-indigo-50/50 rounded-xl transition-all active:scale-95 flex items-center justify-center"
+                title={t('groupDetails.settingsBtn')}
+              >
+                <SettingsIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
         {/* Extra fade tail — extends below the header buttons */}
@@ -734,7 +782,7 @@ export const GroupDetails = () => {
               {/* 2nd place */}
               {globalTodayStandings[1] && globalTodayStandings[1].coins > 0 ? (
                 <div className="flex flex-col items-center gap-1 mb-1">
-                  <div className="w-11 h-11 flex items-center justify-center">
+                  <div className="w-12 h-12 flex items-center justify-center">
                     <AvatarViewer
                       characterKey={getCosmeticKey(globalTodayStandings[1].equipped_character_id)}
                       badgeKey={getCosmeticKey(globalTodayStandings[1].equipped_badge_id)}
@@ -751,7 +799,7 @@ export const GroupDetails = () => {
               {/* 1st place */}
               <div className="flex flex-col items-center gap-1">
                 <span className="text-xl select-none animate-bounce">👑</span>
-                <div className="w-14 h-14 flex items-center justify-center">
+                <div className="w-12 h-12 flex items-center justify-center">
                   <AvatarViewer
                     characterKey={getCosmeticKey(bestPlayer.equipped_character_id)}
                     badgeKey={getCosmeticKey(bestPlayer.equipped_badge_id)}
@@ -767,7 +815,7 @@ export const GroupDetails = () => {
               {/* 3rd place */}
               {globalTodayStandings[2] && globalTodayStandings[2].coins > 0 ? (
                 <div className="flex flex-col items-center gap-1 mb-2">
-                  <div className="w-10 h-10 flex items-center justify-center">
+                  <div className="w-8 h-8 flex items-center justify-center">
                     <AvatarViewer
                       characterKey={getCosmeticKey(globalTodayStandings[2].equipped_character_id)}
                       badgeKey={getCosmeticKey(globalTodayStandings[2].equipped_badge_id)}
@@ -804,7 +852,7 @@ export const GroupDetails = () => {
                   }
                 </span>
                 {/* Avatar */}
-                <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                   <AvatarViewer
                     characterKey={getCosmeticKey(userSt.equipped_character_id)}
                     badgeKey={getCosmeticKey(userSt.equipped_badge_id)}
@@ -847,7 +895,7 @@ export const GroupDetails = () => {
 
               return (
                 <div key={msg.id} className={`flex gap-2.5 max-w-[85%] ${isSelf ? 'ml-auto flex-row-reverse' : ''}`}>
-                  <div className="w-7 h-7 flex-shrink-0 mt-4">
+                  <div className="w-6 h-6 flex-shrink-0 mt-4">
                     <AvatarViewer
                       characterKey={getCosmeticKey(msg.profiles?.equipped_character_id)}
                       badgeKey={getCosmeticKey(msg.profiles?.equipped_badge_id)}

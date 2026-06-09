@@ -6,7 +6,7 @@ import type { Cosmetic } from '../hooks/useShop';
 import { triggerHapticClick, triggerHapticMedium, triggerHapticSuccess, triggerHapticError } from '../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { DisclaimerFooter } from '../components/DisclaimerFooter';
-import { Sparkles, Check, ArrowLeft, RefreshCw, Trophy, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, Check, ArrowLeft, RefreshCw, Trophy, ShieldCheck, Zap, Trash2 } from 'lucide-react';
 
 import coinX3 from '../assets/coin_x3.svg';
 import streakProtector from '../assets/streak_protector.svg';
@@ -15,7 +15,7 @@ import { AvatarViewer, CosmeticGraphic } from '../components/AvatarViewer';
 
 export const Shop = () => {
   const { profile } = useAuth();
-  const { cosmetics, unlockedIds, loading, buyCosmetic, buyStreakProtector, equipCosmetic } = useShop();
+  const { cosmetics, unlockedIds, loading, buyCosmetic, buyStreakProtector, equipCosmetic, adminBuyCosmetic, adminResetInventory } = useShop();
   const { t } = useTranslation();
 
   // Selected item filters
@@ -41,6 +41,31 @@ export const Shop = () => {
     const res = await buyCosmetic(cosmetic.id);
     if (res.success) {
       await triggerHapticSuccess();
+    } else {
+      await triggerHapticError();
+      alert(res.message);
+    }
+  };
+
+  const handleAdminPurchase = async (cosmetic: Cosmetic) => {
+    await triggerHapticMedium();
+    const res = await adminBuyCosmetic(cosmetic.id);
+    if (res.success) {
+      await triggerHapticSuccess();
+    } else {
+      await triggerHapticError();
+      alert(res.message);
+    }
+  };
+
+  const handleAdminResetInventory = async () => {
+    await triggerHapticMedium();
+    const res = await adminResetInventory();
+    if (res.success) {
+      await triggerHapticSuccess();
+      // Reset preview back to base
+      setPreviewCharacter('char_base');
+      setPreviewBadge('');
     } else {
       await triggerHapticError();
       alert(res.message);
@@ -111,35 +136,29 @@ export const Shop = () => {
             setPreviewCharacter(cos.asset_key);
           }
         }}
-        className={`group relative bg-white/70 backdrop-blur-sm rounded-[28px] border overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.97] ${
-          isPreviewActive
-            ? 'border-indigo-300 shadow-lg shadow-indigo-100/60 ring-1 ring-indigo-200/40'
-            : 'border-white/60 shadow-md hover:shadow-lg hover:border-slate-200'
+        className={`group bg-surface-container-lowest rounded-3xl p-4 card-shadow inner-glow flex flex-col items-center justify-between relative cursor-pointer border transition-all duration-200 active:scale-95 ${
+          isPreviewActive ? 'border-primary ring-1 ring-primary/20' : 'border-transparent'
         }`}
       >
-        {/* Status chips */}
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-          <span className="text-[8px] font-black uppercase tracking-wider bg-white/80 backdrop-blur-sm text-slate-500 px-2 py-0.5 rounded-lg border border-slate-100/50">
+        {/* Status chips / badge info */}
+        <div className="absolute top-2 left-2 z-10">
+          <span className="text-[9px] uppercase font-bold text-secondary bg-surface-container-high px-2 py-0.5 rounded-full">
             {t(`shop.types.${cos.type}`)}
           </span>
         </div>
+
         {owned && (
-          <div className="absolute top-3 right-3 z-10">
-            <span className="text-[9px] font-black text-emerald-700 bg-emerald-50/90 backdrop-blur-sm px-2 py-0.5 rounded-lg flex items-center gap-0.5 border border-emerald-100/50">
-              <Check className="w-3 h-3" /> {t('shop.owned')}
+          <div className="absolute top-2 right-2 z-10">
+            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+              <Check className="w-2.5 h-2.5" />
+              {t('shop.owned')}
             </span>
           </div>
         )}
 
         {/* Visual Preview Area */}
-        <div className="relative w-full aspect-square bg-gradient-to-br from-slate-50/80 via-white to-slate-50/60 flex items-center justify-center p-6 overflow-hidden">
-          {/* Decorative bg elements */}
-          <div className="absolute inset-0 opacity-[0.03]">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-[6px] border-slate-800" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-[4px] border-slate-800" />
-          </div>
-
-          <div className="w-20 h-20 relative transition-transform duration-300 group-hover:scale-110">
+        <div className="w-full aspect-square flex items-center justify-center relative mt-4 mb-2 overflow-hidden rounded-2xl bg-surface-container-low">
+          <div className="w-16 h-16 relative transition-transform duration-300 group-hover:scale-110">
             {type === 'costume' && cos.asset_key !== 'char_base' ? (
               <>
                 <div className="absolute inset-0 opacity-15">
@@ -154,10 +173,10 @@ export const Shop = () => {
             )}
           </div>
 
-          {/* Selection indicator */}
+          {/* Selection/Preview active indicator */}
           {isPreviewActive && (
-            <div className="absolute bottom-2 right-2">
-              <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shadow-sm">
+            <div className="absolute bottom-1 right-1">
+              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
                 <Sparkles className="w-3 h-3 text-white" />
               </div>
             </div>
@@ -165,22 +184,21 @@ export const Shop = () => {
         </div>
 
         {/* Info + Action */}
-        <div className="px-4 pb-4 pt-3 space-y-3">
+        <div className="w-full text-center space-y-2">
           <div>
-            <h4 className="font-extrabold text-slate-900 text-sm leading-tight tracking-tight group-hover:text-indigo-600 transition-colors">
+            <h4 className="text-body-md font-body-md font-bold text-on-background line-clamp-1">
               {cos.name}
             </h4>
-            <p className="text-[9px] text-slate-400 font-bold tracking-wider uppercase mt-0.5">
-              {cos.asset_key.replace(/cos_|char_|badge_/g, '').replace(/_/g, ' ')}
-            </p>
           </div>
 
           {equipped ? (
             <button
               disabled
-              className="w-full py-2.5 bg-slate-100/80 text-slate-400 text-[11px] font-black rounded-2xl cursor-default flex items-center justify-center gap-1.5 uppercase tracking-wider"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-surface-container-high text-on-secondary-container text-label-bold font-label-bold py-2 rounded-xl flex items-center justify-center gap-1.5 uppercase cursor-default"
             >
-              <ShieldCheck className="w-3.5 h-3.5" /> {t('shop.equipped')}
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {t('shop.equipped')}
             </button>
           ) : owned ? (
             <button
@@ -188,9 +206,21 @@ export const Shop = () => {
                 e.stopPropagation();
                 handleEquip(cos);
               }}
-              className="w-full py-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-[11px] font-black rounded-2xl cursor-pointer transition-all active:scale-[0.97] flex items-center justify-center gap-1.5 uppercase tracking-wider border border-indigo-100/50"
+              className="w-full bg-primary-container text-on-primary-container text-label-bold font-label-bold py-2 rounded-xl squishy-btn flex items-center justify-center gap-1.5 uppercase cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5" /> {t('shop.equip')}
+              <Zap className="w-3.5 h-3.5" />
+              {t('shop.equip')}
+            </button>
+          ) : profile?.is_admin ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAdminPurchase(cos);
+              }}
+              className="w-full bg-emerald-500 text-white text-label-bold font-label-bold py-2 rounded-xl squishy-btn flex items-center justify-center gap-1.5 uppercase cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {t('shop.adminFree', 'FREE (ADMIN)').toUpperCase()}
             </button>
           ) : (
             <button
@@ -199,9 +229,10 @@ export const Shop = () => {
                 handlePurchase(cos);
               }}
               disabled={(profile?.spendable_points || 0) < cos.price}
-              className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 disabled:from-slate-100 disabled:to-slate-100 disabled:text-slate-400 text-white text-[11px] font-black rounded-2xl cursor-pointer transition-all active:scale-[0.97] shadow-sm disabled:shadow-none flex items-center justify-center gap-1.5 uppercase tracking-wider"
+              className="w-full bg-surface-container text-secondary text-label-bold font-label-bold py-2 rounded-xl squishy-btn flex items-center justify-center gap-1.5 uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain select-none" /> {t('shop.buy', { price: cos.price })}
+              <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain select-none" />
+              {t('shop.buyCoins', { price: cos.price }).toUpperCase()}
             </button>
           )}
         </div>
@@ -210,199 +241,238 @@ export const Shop = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-violet-100 via-indigo-50 to-emerald-50 text-slate-800 pt-safe pb-safe">
-
-      {/* Sticky header — matches GroupDetails style */}
-      <header className="sticky top-0 z-20 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-violet-100/95 via-violet-100/80 to-transparent backdrop-blur-[2px]" />
-
-        <div className="relative pointer-events-auto flex items-center justify-between px-6 py-4" style={{ minHeight: '64px' }}>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-surface-container to-background text-on-background font-body-md pb-24 pt-safe pb-safe">
+      {/* TopAppBar */}
+      <header className="flex justify-between items-center w-full px-margin-mobile h-16 bg-surface dark:bg-background text-on-surface dark:text-on-background z-40 sticky top-0 border-b border-surface-container-highest">
+        <div className="flex items-center gap-4">
           <Link
             to="/"
             onClick={() => triggerHapticClick()}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white/40 rounded-full transition-all active:scale-95"
+            className="p-1 text-primary hover:opacity-80 transition-transform duration-150 active:scale-95 flex items-center justify-center rounded-full hover:bg-surface-container-high cursor-pointer"
+            aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-6 h-6" />
           </Link>
-
-          <span className="text-sm font-black tracking-tight text-slate-800 uppercase">
-            {t('shop.title', 'Shop')}
-          </span>
-
-          {/* Balance pill */}
-          <div className="flex items-center gap-1.5 bg-white/60 border border-white/50 px-3 py-1.5 rounded-full shadow-sm">
-            <img src={coinX3} alt="Coins" className="w-5 h-5 object-contain select-none" />
-            <span className="text-xs font-black text-slate-800 tabular-nums">{profile?.spendable_points || 0}</span>
-          </div>
+          <h1 className="text-headline-sm font-headline-sm font-bold uppercase tracking-wider">
+            {t('shop.title', 'Tienda de Cosméticos').toUpperCase()}
+          </h1>
         </div>
-
-        {/* Gradient tail fade */}
-        <div className="h-4 bg-gradient-to-b from-violet-100/30 to-transparent" />
+        <div className="flex items-center bg-surface-container-high rounded-full px-3 py-1.5 shadow-sm inner-glow">
+          <img src={coinX3} alt="Coins" className="w-5 h-5 mr-1 object-contain select-none" />
+          <span className="text-label-bold font-label-bold text-on-surface-variant tabular-nums">
+            {profile?.spendable_points || 0}
+          </span>
+        </div>
       </header>
 
-      <main className="flex-1 max-w-lg w-full mx-auto px-5 pt-2 pb-12 space-y-6">
-
-        {/* PROFILE SUMMARY + PREVIEW */}
+      <main className="px-margin-mobile max-w-md mx-auto pt-6 flex flex-col gap-6 w-full">
+        {/* Avatar Preview Card */}
         {profile && (
-          <div className="relative bg-white/60 backdrop-blur-md rounded-[32px] border border-white/50 shadow-xl overflow-hidden">
-            {/* Decorative gradients */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-sky-400/8 rounded-full blur-3xl pointer-events-none" />
+          <section className="bg-surface-container-lowest rounded-3xl p-6 card-shadow flex flex-col items-center inner-glow relative w-full">
+            {/* Reset button at top-right of the card */}
+            <button
+              onClick={resetPreviews}
+              className="absolute top-4 right-4 w-8 h-8 bg-white border border-slate-200/80 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-90 z-30 cursor-pointer"
+              title="Revert Preview"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            </button>
 
-            <div className="relative p-6 flex flex-col items-center gap-5">
-              {/* Equipped Avatar Preview Playground */}
-              <div className="relative">
-                <div className="w-28 h-28 relative">
-                  <AvatarViewer
-                    characterKey={previewCharacter}
-                    badgeKey={previewBadge}
-                  />
-                </div>
-
-                {/* Reset button overlaid on avatar */}
-                <button
-                  onClick={resetPreviews}
-                  className="absolute -bottom-1 -right-1 w-8 h-8 bg-white border border-slate-200/80 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-90 z-10"
-                  title="Revert Preview"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                </button>
+            <div className="relative">
+              <div className="w-36 h-36 flex items-center justify-center mb-4 relative z-10">
+                <AvatarViewer
+                  characterKey={previewCharacter}
+                  badgeKey={previewBadge}
+                />
               </div>
+            </div>
 
-              {/* User info */}
-              <div className="text-center space-y-1">
-                <h1 className="text-lg font-black text-slate-900 tracking-tight">{profile.username}</h1>
-                <div className="flex items-center justify-center gap-1.5">
-                  <Sparkles className="w-3 h-3 text-indigo-400" />
-                  <span className="text-[10px] font-bold text-slate-400">{t('shop.previewSubtitle')}</span>
-                </div>
-              </div>
+            <h2 className="text-headline-md font-headline-md text-on-background mb-1">
+              {profile.username}
+            </h2>
 
-              {/* Stats row */}
-              <div className="flex items-center gap-0 bg-white/70 backdrop-blur-sm rounded-2xl border border-slate-100/60 overflow-hidden w-full max-w-xs">
-                <div className="flex-1 text-center py-3 px-4">
-                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest block mb-0.5">Spendable</span>
-                  <span className="text-base font-black text-amber-600 flex items-center justify-center gap-1">
-                    <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain translate-y-[2px] select-none" /> {profile.spendable_points}
+            <div className="flex items-center text-primary mb-6">
+              <Sparkles className="w-4 h-4 mr-1" />
+              <span className="text-label-sm font-label-sm">
+                {t('shop.previewSubtitle', 'Toca los artículos abajo para probarlos aquí')}
+              </span>
+            </div>
+
+            <div className="flex w-full gap-4 pt-4 border-t border-surface-container-highest">
+              <div className="flex-1 flex flex-col items-center">
+                <span className="text-[10px] uppercase font-bold text-secondary mb-1">
+                  {t('shop.spendable', 'Spendable').toUpperCase()}
+                </span>
+                <div className="flex items-center">
+                  <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain mr-1 select-none" />
+                  <span className="text-label-bold font-label-bold text-tertiary-container tabular-nums">
+                    {profile.spendable_points}
                   </span>
                 </div>
-                <div className="w-px h-8 bg-slate-200/60" />
-                <div className="flex-1 text-center py-3 px-4">
-                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest block mb-0.5">Lifetime</span>
-                  <span className="text-base font-black text-indigo-600 flex items-center justify-center gap-1">
-                    <Trophy className="w-3.5 h-3.5" /> {profile.lifetime_points}
+              </div>
+              <div className="w-[1px] bg-surface-container-highest"></div>
+              <div className="flex-1 flex flex-col items-center">
+                <span className="text-[10px] uppercase font-bold text-secondary mb-1">
+                  {t('shop.lifetime', 'Lifetime').toUpperCase()}
+                </span>
+                <div className="flex items-center">
+                  <Trophy className="w-4 h-4 text-primary mr-1" />
+                  <span className="text-label-bold font-label-bold text-primary tabular-nums">
+                    {profile.lifetime_points}
                   </span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* CATEGORY TABS — pill style */}
-        <div className="flex gap-1.5 bg-white/40 backdrop-blur-sm p-1 rounded-2xl border border-white/50 shadow-sm">
-          {categories.map(cat => (
+        {/* Category Tabs */}
+        <nav className="flex bg-surface-container-low rounded-full p-1 overflow-x-auto no-scrollbar shadow-sm border border-surface-container-highest w-full">
+          {categories.map((cat) => (
             <button
               key={cat.key}
-              onClick={() => { triggerHapticClick(); setSelectedCategory(cat.key); }}
-              className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 ${
+              onClick={() => {
+                triggerHapticClick();
+                setSelectedCategory(cat.key);
+              }}
+              className={`flex-1 px-4 py-2 rounded-full text-label-bold font-label-bold whitespace-nowrap transition-colors cursor-pointer text-center ${
                 selectedCategory === cat.key
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/30'
+                  ? 'bg-white text-on-surface shadow-sm'
+                  : 'text-secondary hover:bg-surface-container'
               }`}
             >
-              {cat.label}
+              {cat.label.toUpperCase()}
             </button>
           ))}
-        </div>
+        </nav>
 
         {loading ? (
-          <div className="py-16 flex flex-col items-center gap-3">
+          <div className="py-16 flex flex-col items-center gap-3 w-full">
             <div className="w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">{t('shop.loadingItems')}</p>
+            <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">
+              {t('shop.loadingItems')}
+            </p>
           </div>
         ) : (
-          <div className="space-y-8">
-
-            {/* UTILITIES SECTION */}
+          <div className="space-y-8 w-full">
+            {/* Power-ups Section */}
             {selectedCategory === 'all' && (
-              <section>
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pl-1">
-                  <span className="w-1 h-4 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
-                  Power-Ups & Utilities
-                </h3>
-
-                <div
-                  className="group relative bg-white/70 backdrop-blur-sm rounded-[28px] border border-white/60 shadow-md overflow-hidden transition-all hover:shadow-lg active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4 p-5">
-                    {/* Icon */}
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100/60 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+              <section className="w-full">
+                <div className="flex items-center mb-4">
+                  <div className="w-1 h-4 bg-tertiary-fixed-dim rounded-full mr-2"></div>
+                  <h3 className="text-label-bold font-label-bold text-secondary uppercase tracking-widest">
+                    {t('shop.sections.utilities', 'Power-Ups & Utilities').toUpperCase()}
+                  </h3>
+                </div>
+                <div className="bg-surface-container-lowest rounded-3xl p-4 card-shadow inner-glow flex flex-col gap-4 w-full">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-tertiary-fixed/20 rounded-2xl flex items-center justify-center border border-tertiary-fixed flex-shrink-0">
                       <img
                         src={streakProtector}
                         alt="Streak Protector"
                         className="w-10 h-10 object-contain select-none"
                       />
                     </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h4 className="font-extrabold text-slate-900 text-sm tracking-tight">Streak Protector</h4>
-                        <span className="text-[8px] font-black uppercase tracking-wider bg-amber-100/80 text-amber-700 px-1.5 py-0.5 rounded-md">
-                          Utility
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-body-md font-body-md font-bold text-on-background">
+                          {t('shop.streakProtectorName', 'Streak Protector')}
+                        </h4>
+                        <span className="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold px-2 py-0.5 rounded-sm">
+                          {t('shop.streakProtectorType', 'Utility').toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-                        Keeps your streak alive if you miss a daily game! Used automatically.
+                      <p className="text-label-sm font-label-sm text-secondary mb-1">
+                        {t('shop.streakProtectorDesc', 'Keeps your streak alive if you miss a daily game! Used automatically.')}
                       </p>
-                      <span className="text-[9px] font-black text-amber-700 mt-1 inline-block">
-                        Owned: {profile?.streak_protectors || 0}
-                      </span>
+                      <p className="text-label-bold font-label-bold text-tertiary-container text-[11px] tabular-nums">
+                        {t('shop.ownedCount', { count: profile?.streak_protectors || 0 })}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Buy action */}
-                  <div className="px-5 pb-4">
+                  {profile?.is_admin ? (
+                    <button
+                      onClick={handleBuyStreakProtector}
+                      className="w-full bg-emerald-500 text-white text-label-bold font-label-bold py-3 rounded-xl squishy-btn flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {t('shop.adminFree', 'FREE (ADMIN)').toUpperCase()}
+                    </button>
+                  ) : (
                     <button
                       onClick={handleBuyStreakProtector}
                       disabled={(profile?.spendable_points || 0) < 150}
-                      className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 disabled:from-slate-100 disabled:to-slate-100 disabled:text-slate-400 text-white text-[11px] font-black rounded-2xl cursor-pointer transition-all active:scale-[0.97] shadow-sm disabled:shadow-none flex items-center justify-center gap-1.5 uppercase tracking-wider"
+                      className="w-full bg-surface-container text-secondary text-label-bold font-label-bold py-3 rounded-xl squishy-btn flex items-center justify-center gap-2 border-b-2 border-surface-container-highest disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain select-none" /> Buy for 150 Coins
+                      <img src={coinX3} alt="Coins" className="w-4 h-4 object-contain select-none" />
+                      {t('shop.buyCoins', { price: 150 }).toUpperCase()}
                     </button>
-                  </div>
+                  )}
                 </div>
               </section>
             )}
 
-            {/* BADGES SECTION */}
+            {/* Badges Section */}
             {(selectedCategory === 'all' || selectedCategory === 'badge') && badgesList.length > 0 && (
-              <section>
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pl-1">
-                  <span className="w-1 h-4 bg-gradient-to-b from-indigo-400 to-purple-500 rounded-full" />
-                  {t('shop.types.badge')}s
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3">
+              <section className="w-full">
+                <div className="flex items-center mb-4">
+                  <div className="w-1 h-4 bg-tertiary-fixed-dim rounded-full mr-2"></div>
+                  <h3 className="text-label-bold font-label-bold text-secondary uppercase tracking-widest">
+                    {t('shop.sections.badges', 'Badges').toUpperCase()}
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 w-full">
                   {badgesList.map((cos) => renderItemCard(cos, 'badge'))}
                 </div>
               </section>
             )}
 
-            {/* OUTFITS & CHARACTERS SECTION */}
+            {/* Outfits & Costumes Section */}
             {(selectedCategory === 'all' || selectedCategory === 'costume') && outfitsList.length > 0 && (
-              <section>
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 pl-1">
-                  <span className="w-1 h-4 bg-gradient-to-b from-sky-400 to-emerald-500 rounded-full" />
-                  Outfits & Costumes
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3">
+              <section className="w-full">
+                <div className="flex items-center mb-4">
+                  <div className="w-1 h-4 bg-tertiary-fixed-dim rounded-full mr-2"></div>
+                  <h3 className="text-label-bold font-label-bold text-secondary uppercase tracking-widest">
+                    {t('shop.sections.outfits', 'Outfits & Costumes').toUpperCase()}
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3 w-full">
                   {outfitsList.map((cos) => renderItemCard(cos, 'costume'))}
                 </div>
               </section>
             )}
 
+            {/* Admin Tools Section */}
+            {profile?.is_admin && (
+              <section className="w-full">
+                <div className="flex items-center mb-4">
+                  <div className="w-1 h-4 bg-error rounded-full mr-2"></div>
+                  <h3 className="text-label-bold font-label-bold text-error uppercase tracking-widest">
+                    {t('shop.adminSection', 'Admin Tools').toUpperCase()}
+                  </h3>
+                </div>
+                <div className="bg-surface-container-lowest rounded-3xl p-5 card-shadow inner-glow flex flex-col gap-4 w-full border border-error/20">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-5 h-5 text-error flex-shrink-0" />
+                    <div>
+                      <h4 className="text-body-md font-body-md font-bold text-on-background">
+                        {t('shop.adminResetTitle', 'Reset Inventory')}
+                      </h4>
+                      <p className="text-label-sm font-label-sm text-secondary">
+                        {t('shop.adminResetDesc', 'Delete all owned cosmetics and unequip everything. Default avatar will be re-granted.')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleAdminResetInventory}
+                    className="w-full bg-error text-on-error text-label-bold font-label-bold py-3 rounded-xl squishy-btn flex items-center justify-center gap-2 uppercase cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {t('shop.adminResetInventory', 'Reset All Inventory').toUpperCase()}
+                  </button>
+                </div>
+              </section>
+            )}
           </div>
         )}
       </main>

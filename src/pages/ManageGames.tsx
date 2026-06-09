@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabase';
 import { triggerHapticClick } from '../utils/haptics';
-import { ArrowLeft, Check, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Copy, Send } from 'lucide-react';
 import { DisclaimerFooter } from '../components/DisclaimerFooter';
 
 interface Game {
@@ -335,15 +335,19 @@ export const ManageGames = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null); // gameId being toggled
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [group, setGroup] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: gamesData }, { data: activeData }] = await Promise.all([
+      const [{ data: gamesData }, { data: activeData }, { data: groupData }] = await Promise.all([
         supabase.from('games').select('*').order('display_name'),
         supabase.from('group_games').select('game_id').eq('group_id', groupId),
+        supabase.from('groups').select('*').eq('id', groupId).single(),
       ]);
       if (gamesData) setAllGames(gamesData);
       if (activeData) setActiveGameIds(activeData.map((ag: any) => ag.game_id));
+      if (groupData) setGroup(groupData);
       setLoading(false);
     };
     load();
@@ -377,26 +381,85 @@ export const ManageGames = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 text-slate-800 font-sans pt-safe">
 
-      {/* ── Minimal Header (Blends completely with the page body) ── */}
-      <header className="relative z-20 max-w-lg mx-auto px-4 pt-6">
-        <button
-          onClick={async () => { await triggerHapticClick(); navigate(-1); }}
-          className="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/40 transition-all active:scale-95 flex-shrink-0"
-          aria-label={t('groupDetails.backBtn')}
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
+      {/* ── Modern Clean Header ── */}
+      <header className="relative z-20 max-w-lg mx-auto px-4 pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={async () => { await triggerHapticClick(); navigate(-1); }}
+            className="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/40 transition-all active:scale-95 flex-shrink-0"
+            aria-label={t('groupDetails.backBtn')}
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          {!loading && group && (
+            <h1 className="text-lg font-black text-slate-900 tracking-tight truncate">
+              {group.name}
+            </h1>
+          )}
+        </div>
+
+        {!loading && group && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Copy code button (icon only) */}
+            <button
+              onClick={async () => {
+                await triggerHapticClick();
+                navigator.clipboard.writeText(group.invite_code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className={`p-2 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${
+                copied
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 shadow-sm'
+              }`}
+              title={copied ? t('dashboard.createModal.codeCopied') : t('dashboard.createModal.copyCodeBtn')}
+            >
+              {copied ? (
+                <Check className="w-5 h-5 text-emerald-600" strokeWidth={3} />
+              ) : (
+                <Copy className="w-5 h-5" />
+              )}
+            </button>
+
+            {/* Send/Share button (icon only) */}
+            <button
+              onClick={async () => {
+                await triggerHapticClick();
+                const shareText = `Join my league on Puzzlr! Code: ${group.invite_code}`;
+                if (navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: group.name,
+                      text: shareText,
+                    });
+                  } catch (err) {
+                    console.error('Error sharing:', err);
+                  }
+                } else {
+                  navigator.clipboard.writeText(shareText);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
+              }}
+              className="p-2 rounded-xl border bg-sky-50 text-sky-700 border-sky-100 hover:bg-sky-100 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
+              title="Share Group Invite"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ── Body ── */}
-      <main className="max-w-lg mx-auto px-4 py-4 pb-24 space-y-6">
+      <main className="max-w-lg mx-auto px-4 py-4 pb-60 space-y-6">
 
         {loading && (
-          <div className="flex flex-col items-center gap-3 py-20">
+          <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="text-xs text-slate-400 font-bold tracking-widest uppercase">{t('app.loading')}</p>
           </div>
         )}
+
 
         {!loading && ORIGIN_GROUPS.map(group => {
           const games = gamesByOrigin(group.key);

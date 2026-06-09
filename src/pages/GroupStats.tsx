@@ -420,11 +420,26 @@ export const GroupStats = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin"></div>
-          <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">{t('app.loading')}</p>
-        </div>
+      <div
+        className="flex flex-col min-h-screen bg-slate-50 text-slate-800 pt-safe font-sans"
+        style={{
+          backgroundImage: 'radial-gradient(#e2e8f0 1.5px, transparent 1.5px)',
+          backgroundSize: '16px 16px'
+        }}
+      >
+        <header className="px-6 py-4 flex items-center">
+          <Link
+            to={`/group/${groupId}`}
+            onClick={() => triggerHapticClick()}
+            className="w-10 h-10 flex items-center justify-center bg-white/80 hover:bg-white text-slate-700 rounded-full transition-all active:scale-95 shadow-sm border border-slate-200/50"
+            title={t('groupStats.backBtn')}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center pb-24">
+          <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
+        </main>
       </div>
     );
   }

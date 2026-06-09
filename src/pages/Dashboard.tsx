@@ -6,8 +6,7 @@ import { useGroups } from '../hooks/useGroups';
 import { parseShareText } from '../services/parser';
 import { triggerHapticClick, triggerHapticSuccess, triggerHapticError } from '../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { Logo } from '../components/Logo';
-import { Clipboard, ShieldAlert, CheckCircle2, Settings as SettingsIcon, Volume2, VolumeX, X, ArrowLeft, Copy, Share2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clipboard, ShieldAlert, CheckCircle2, Volume2, VolumeX, X, ArrowLeft, Copy, Share2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import coinX3 from '../assets/coin_x3.svg';
 import streakHot from '../assets/streak_hot.svg';
 import streakCold from '../assets/streak_cold.svg';
@@ -588,24 +587,27 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-safe pb-safe">
+    <div className="flex flex-col w-full min-h-screen bg-gradient-to-b from-surface-container-low to-surface-container text-on-surface font-body-md pb-24 pt-safe pb-safe">
       {/* Top Navbar */}
-      <header className="flex items-center justify-between px-6 py-4">
-        {/* Brand/Logo */}
-        <div className="flex items-center gap-2">
-          <Logo size={32} className="rounded-lg overflow-hidden shadow-sm border border-slate-100" />
-          <span className="text-xl font-black tracking-tighter text-slate-800">{t('dashboard.brandName')}</span>
-        </div>
-
-        {/* Right Action Icons & Points */}
+      <header className="flex justify-between items-center px-margin-mobile h-16 w-full z-50 fixed top-0 bg-surface-container-low/90 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center gap-3">
-          {/* Streak indicator pill */}
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary-fixed shadow-sm">
+            <img
+              alt="Puzzlr Mascot"
+              className="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida/AP1WRLs6-Xdfp4G9uAP_f3ikAd5th19MEN4H7U-gbkiEoBfwhXyWRkUHE9daxPltsbDfy5pPiG0sKd2b90nGHShiBm7Rf_iIF24S3Rf3Tc0Ibl75tgZEreZaMkFA8Ht00_FHomHkW5wdcYEEGy7fwkJ1n6o3Vb2UeCj6A_5MfjOGNVFZ_BQFJ554l4yZcTDunt-kFdIPQeS0AwHnGZJ1cIkNePpc8kWhmBXvEhLD5zDrwKqBbbwu0aYnFOQazA1S"
+            />
+          </div>
+          <h1 className="text-headline-md font-headline-md text-on-surface">Puzzlr</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Stats - Streak */}
           <button
             onClick={() => {
               triggerHapticClick();
               setShowCalendar(!showCalendar);
             }}
-            className={`flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border text-sm font-extrabold shadow-sm hover:shadow transition-all active:scale-95 ${playedToday
+            className={`flex items-center bg-surface-container-lowest shadow-sm rounded-full px-3 py-1.5 border border-white/50 transition-all active:scale-95 cursor-pointer ${playedToday
               ? 'text-orange-600 border-orange-200 bg-orange-50'
               : 'text-sky-600 border-sky-300 bg-sky-50/80 animate-pulse shadow-[0_0_12px_rgba(14,165,233,0.45)]'
               }`}
@@ -614,311 +616,315 @@ export const Dashboard = () => {
             <img
               src={playedToday ? streakHot : streakCold}
               alt={playedToday ? "Hot Streak" : "Cold Streak"}
-              className={`w-5 h-5 object-contain select-none ${!playedToday ? 'animate-bounce' : ''}`}
+              className={`w-5 h-5 object-contain select-none mr-1 ${!playedToday ? 'animate-bounce' : ''}`}
             />
-            <span className="leading-none tabular-nums">{profile?.streak_count || 0}</span>
+            <span className="text-label-bold font-label-bold text-primary leading-none tabular-nums">
+              {profile?.streak_count || 0}
+            </span>
           </button>
 
-          {/* Points indicator pill */}
+          {/* Stats - Coins */}
           <Link
             to="/shop"
             onClick={() => triggerHapticClick()}
-            className="flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full border border-slate-200/80 text-sm font-extrabold text-slate-800 shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer"
+            className="flex items-center bg-surface-container-lowest shadow-sm rounded-full px-3 py-1.5 border border-white/50 text-slate-800 transition-all active:scale-95 cursor-pointer"
             title={t('dashboard.shop')}
           >
-            <img src={coinX3} alt="Coins" className="w-6 h-6 object-contain -ml-1 translate-y-[4px] select-none" />
-            <span className="leading-none tabular-nums">{profile?.spendable_points || 0}</span>
+            <img src={coinX3} alt="Coins" className="w-5 h-5 object-contain mr-1 select-none" />
+            <span className="text-label-bold font-label-bold text-on-surface leading-none tabular-nums">
+              {profile?.spendable_points || 0}
+            </span>
           </Link>
 
-          {/* Settings Icon */}
+          {/* Settings Button */}
           <Link
             to="/settings"
             onClick={() => triggerHapticClick()}
-            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center transition-all border border-slate-200 shadow-sm"
+            className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity border border-white/50"
             title={t('dashboard.settings')}
           >
-            <SettingsIcon className="w-4 h-4 text-slate-600" />
+            <span className="material-symbols-outlined">settings</span>
           </Link>
         </div>
       </header>
 
-      {/* Mini Calendar Drawer - Moves the rest of the UI down */}
-      <div className={`bg-white/95 border-slate-200/50 shadow-sm transition-all duration-500 ease-in-out overflow-hidden ${showCalendar
-        ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
-        : 'max-h-0 py-0 px-6 opacity-0 border-y-0'
-        }`}>
-        <div className="max-w-md mx-auto space-y-4">
+      {/* Content Wrapper to offset the fixed header */}
+      <div className="w-full pt-16 flex-1 flex flex-col">
+        {/* Mini Calendar Drawer - Moves the rest of the UI down */}
+        <div className={`bg-white/95 border-slate-200/50 shadow-sm transition-all duration-500 ease-in-out overflow-hidden ${showCalendar
+          ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
+          : 'max-h-0 py-0 px-6 opacity-0 border-y-0'
+          }`}>
+          <div className="max-w-md mx-auto space-y-4">
 
-          {/* Header controls for Calendar */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevMonth}
-                className="p-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
-                title="Previous Month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-black text-slate-800 uppercase tracking-widest min-w-[120px] text-center">
-                {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-              </span>
-              <button
-                onClick={handleNextMonth}
-                className="p-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
-                title="Next Month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+            {/* Header controls for Calendar */}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+                  title="Previous Month"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-black text-slate-800 uppercase tracking-widest min-w-[120px] text-center">
+                  {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </span>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+                  title="Next Month"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="text-xs font-black text-slate-600 flex items-center gap-1.5 select-none">
+                <span>{profile?.streak_protectors || 0} x</span>
+                <img src={streakProtector} alt="Streak Protector" className="w-4 h-4 object-contain" />
+              </div>
             </div>
 
-            <div className="text-xs font-black text-slate-600 flex items-center gap-1.5 select-none">
-              <span>{profile?.streak_protectors || 0} x</span>
-              <img src={streakProtector} alt="Streak Protector" className="w-4 h-4 object-contain" />
+            {/* Calendar grid headers */}
+            <div className="grid grid-cols-7 gap-2 text-center border-b border-slate-100 pb-1.5">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+                <span key={label} className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{label}</span>
+              ))}
             </div>
-          </div>
 
-          {/* Calendar grid headers */}
-          <div className="grid grid-cols-7 gap-2 text-center border-b border-slate-100 pb-1.5">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
-              <span key={label} className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{label}</span>
-            ))}
-          </div>
+            {/* Calendar grid days */}
+            <div className="grid grid-cols-7 gap-x-2 gap-y-3">
+              {getMonthDays().map((dayDate, idx) => {
+                if (!dayDate) {
+                  return <div key={`empty-${idx}`} className="w-9 h-9" />;
+                }
 
-          {/* Calendar grid days */}
-          <div className="grid grid-cols-7 gap-x-2 gap-y-3">
-            {getMonthDays().map((dayDate, idx) => {
-              if (!dayDate) {
-                return <div key={`empty-${idx}`} className="w-9 h-9" />;
-              }
+                // YYYY-MM-DD local construction safely
+                const year = dayDate.getFullYear();
+                const monthStr = String(dayDate.getMonth() + 1).padStart(2, '0');
+                const dateStrNum = String(dayDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${monthStr}-${dateStrNum}`;
 
-              // YYYY-MM-DD local construction safely
-              const year = dayDate.getFullYear();
-              const monthStr = String(dayDate.getMonth() + 1).padStart(2, '0');
-              const dateStrNum = String(dayDate.getDate()).padStart(2, '0');
-              const dateStr = `${year}-${monthStr}-${dateStrNum}`;
+                const isSolved = solvedDates.includes(dateStr);
+                const todayStr = new Date().toISOString().split('T')[0];
+                const signupDateStr = profile?.created_at ? profile.created_at.split('T')[0] : '';
 
-              const isSolved = solvedDates.includes(dateStr);
-              const todayStr = new Date().toISOString().split('T')[0];
-              const signupDateStr = profile?.created_at ? profile.created_at.split('T')[0] : '';
+                const isBeforeSignup = signupDateStr ? dateStr < signupDateStr : false;
+                const isAfterToday = dateStr > todayStr;
+                const isToday = dateStr === todayStr;
 
-              const isBeforeSignup = signupDateStr ? dateStr < signupDateStr : false;
-              const isAfterToday = dateStr > todayStr;
-              const isToday = dateStr === todayStr;
+                // Simple render if outside of active user usage bounds (before signup or in future)
+                if (isBeforeSignup || isAfterToday) {
+                  return (
+                    <div key={dateStr} className="flex flex-col items-center justify-center h-9">
+                      <span className={`text-[10px] font-bold text-slate-300 w-7 h-7 rounded-full flex items-center justify-center ${isToday ? 'border border-indigo-200 text-slate-500' : ''}`}>
+                        {dayDate.getDate()}
+                      </span>
+                    </div>
+                  );
+                }
 
-              // Simple render if outside of active user usage bounds (before signup or in future)
-              if (isBeforeSignup || isAfterToday) {
+                // Render with streak state indicator (Solved vs Cold)
                 return (
                   <div key={dateStr} className="flex flex-col items-center justify-center h-9">
-                    <span className={`text-[10px] font-bold text-slate-300 w-7 h-7 rounded-full flex items-center justify-center ${isToday ? 'border border-indigo-200 text-slate-500' : ''}`}>
-                      {dayDate.getDate()}
-                    </span>
-                  </div>
-                );
-              }
-
-              // Render with streak state indicator (Solved vs Cold)
-              return (
-                <div key={dateStr} className="flex flex-col items-center justify-center h-9">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs border-2 transition-all relative ${isSolved
-                      ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-white shadow-sm'
-                      : isToday
-                        ? 'border-indigo-400 border-dashed text-slate-800 bg-slate-50'
-                        : 'bg-slate-50 border-slate-100 text-slate-300'
-                      }`}
-                    title={isSolved ? 'Solved!' : 'Cold day'}
-                  >
-                    <span>{dayDate.getDate()}</span>
-                    {isSolved && (
-                      <span className="absolute -top-1.5 -right-1 text-[8px]">🔥</span>
-                    )}
-                    {!isSolved && (
-                      <span className="absolute -top-1.5 -right-1 text-[8px]">❄️</span>
-                    )}
-                    {isToday && !isSolved && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      </div>
-
-
-
-      {/* Main Container */}
-      <main className="flex-1 max-w-md w-full mx-auto px-5 py-4 space-y-6">
-
-
-        {/* Group / League Cards */}
-        <div className="space-y-6">
-          {groupsLoading ? (
-            <div className="py-12 flex flex-col items-center gap-2">
-              <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-              <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">{t('dashboard.loadingLeagues')}</p>
-            </div>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-12 bg-white/70 border border-slate-200/60 rounded-[32px] p-8 backdrop-blur-md shadow-sm flex flex-col items-center justify-center space-y-3">
-              <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center shadow-inner">
-                <span className="text-3xl">👥</span>
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-extrabold text-slate-800 tracking-tight">{t('groups.noGroups')}</h3>
-                <p className="text-xs text-slate-500 font-medium max-w-[200px] mx-auto leading-relaxed">{t('dashboard.createGroupHint')}</p>
-              </div>
-            </div>
-          ) : (
-            groups.map((group) => {
-              const standings = groupStandings[group.id] || [];
-              const members = groupMembers[group.id] || [];
-              const isMuted = mutedGroups[group.id] || false;
-
-              const userRank = standings.findIndex((s) => s.profile_id === profile?.id) + 1;
-
-              return (
-                <Link
-                  key={group.id}
-                  to={`/group/${group.id}`}
-                  onClick={() => triggerHapticClick()}
-                  className="block bg-white rounded-[32px] overflow-hidden shadow-xl border border-white/5 transition-transform hover:scale-[1.01]"
-                >
-                  {/* Banner image with overlapping avatars */}
-                  <div className="relative h-44 w-full bg-slate-900">
-                    <img
-                      src={group.image_url || BANNER_PRESETS[0].url}
-                      alt={group.name}
-                      className="w-full h-full object-cover opacity-90"
-                    />
-
-                    {/* Volume Mute Toggle */}
-                    <button
-                      onClick={(e) => toggleMuteGroup(group.id, e)}
-                      className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-all text-white border border-white/10"
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs border-2 transition-all relative ${isSolved
+                        ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-white shadow-sm'
+                        : isToday
+                          ? 'border-indigo-400 border-dashed text-slate-800 bg-slate-50'
+                          : 'bg-slate-50 border-slate-100 text-slate-300'
+                        }`}
+                      title={isSolved ? 'Solved!' : 'Cold day'}
                     >
-                      {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {/* Member Avatars Overlapping at the bottom-left */}
-                    <div className="absolute -bottom-3 left-5 flex -space-x-3.5 z-10">
-                      {members.slice(0, 4).map((member, idx) => (
-                        <div
-                          key={member.profile_id || idx}
-                          className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-visible"
-                          style={{ zIndex: 10 - idx }}
-                          title={member.username}
-                        >
-                          <AvatarViewer
-                            characterKey={cosmetics.find(c => c.id === member.equipped_character_id)?.asset_key || 'char_base'}
-                            badgeKey={cosmetics.find(c => c.id === member.equipped_badge_id)?.asset_key || ''}
-                            size="md"
-                          />
-                        </div>
-                      ))}
-                      {members.length > 4 && (
-                        <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center shadow-md z-0">
-                          +{members.length - 4}
-                        </div>
+                      <span>{dayDate.getDate()}</span>
+                      {isSolved && (
+                        <span className="absolute -top-1.5 -right-1 text-[8px]">🔥</span>
+                      )}
+                      {!isSolved && (
+                        <span className="absolute -top-1.5 -right-1 text-[8px]">❄️</span>
+                      )}
+                      {isToday && !isSolved && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
                       )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Info details under the banner image */}
-                  <div className="p-6 pt-5 bg-white text-slate-900 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-extrabold text-xl text-slate-900 tracking-tight leading-tight">
-                          {group.name}
-                        </h3>
-                      </div>
+          </div>
+        </div>
 
-                      {/* Right-aligned badges */}
-                      <div className="flex items-center gap-1.5">
-                        {/* Streak fire badge */}
-                        <div className="bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                          <img
-                            src={playedToday ? streakHot : streakCold}
-                            alt="Streak"
-                            className="w-4 h-4 object-contain select-none"
-                          />
-                          <span>{profile?.streak_count || 0}</span>
-                        </div>
+        {/* Main Container */}
+        <main className="w-full px-margin-mobile max-w-lg mx-auto pt-4 space-y-6 flex-1">
 
-                        {/* Ranking Trophy badge */}
-                        <div className="bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
-                          <span>#{userRank || 1}</span>
-                          <span className="text-yellow-500">🏆</span>
-                        </div>
+          {/* Group / League Cards */}
+          <div className="space-y-6">
+            {groupsLoading ? (
+              <div className="py-12 flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+                <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">{t('dashboard.loadingLeagues')}</p>
+              </div>
+            ) : groups.length === 0 ? (
+              <div className="text-center py-12 bg-white/70 border border-slate-200/60 rounded-[32px] p-8 backdrop-blur-md shadow-sm flex flex-col items-center justify-center space-y-3">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center shadow-inner">
+                  <span className="text-3xl">👥</span>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-extrabold text-slate-800 tracking-tight">{t('groups.noGroups')}</h3>
+                  <p className="text-xs text-slate-500 font-medium max-w-[200px] mx-auto leading-relaxed">{t('dashboard.createGroupHint')}</p>
+                </div>
+              </div>
+            ) : (
+              groups.map((group) => {
+                const standings = groupStandings[group.id] || [];
+                const members = groupMembers[group.id] || [];
+                const isMuted = mutedGroups[group.id] || false;
+
+                const userRank = standings.findIndex((s) => s.profile_id === profile?.id) + 1;
+
+                return (
+                  <Link
+                    key={group.id}
+                    to={`/group/${group.id}`}
+                    onClick={() => triggerHapticClick()}
+                    className="block bg-white rounded-[32px] overflow-hidden shadow-xl border border-white/5 transition-transform hover:scale-[1.01]"
+                  >
+                    {/* Banner image with overlapping avatars */}
+                    <div className="relative h-44 w-full bg-slate-900">
+                      <img
+                        src={group.image_url || BANNER_PRESETS[0].url}
+                        alt={group.name}
+                        className="w-full h-full object-cover opacity-90"
+                      />
+
+                      {/* Volume Mute Toggle */}
+                      <button
+                        onClick={(e) => toggleMuteGroup(group.id, e)}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center backdrop-blur-sm transition-all text-white border border-white/10"
+                      >
+                        {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                      </button>
+
+                      {/* Member Avatars Overlapping at the bottom-left */}
+                      <div className="absolute -bottom-3 left-5 flex -space-x-3.5 z-10">
+                        {members.slice(0, 4).map((member, idx) => (
+                          <div
+                            key={member.profile_id || idx}
+                            className="w-12 h-12 flex items-center justify-center relative overflow-visible"
+                            style={{ zIndex: 10 - idx }}
+                            title={member.username}
+                          >
+                            <AvatarViewer
+                              characterKey={cosmetics.find(c => c.id === member.equipped_character_id)?.asset_key || 'char_base'}
+                              badgeKey={cosmetics.find(c => c.id === member.equipped_badge_id)?.asset_key || ''}
+                              size="md"
+                              borderClass="border-white"
+                              shadowClass="shadow-md"
+                            />
+                          </div>
+                        ))}
+                        {members.length > 4 && (
+                          <div className="w-12 h-12 rounded-full border-2 border-white bg-slate-800 text-white font-bold text-[10px] flex items-center justify-center shadow-md z-0">
+                            +{members.length - 4}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Expandable standings list breakdown inside card */}
-                    {standings.length > 0 && (
-                      <div className="pt-3 border-t border-slate-100 space-y-2">
-                        <p className="text-[10px] text-slate-400 font-black tracking-widest uppercase">{t('dashboard.leaderboard')}</p>
-                        <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                          {standings.map((userSt, i) => (
-                            <div key={userSt.profile_id} className="flex justify-between items-center text-xs font-bold py-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-300 w-3 font-black">#{i + 1}</span>
-                                <span className={userSt.profile_id === profile?.id ? 'text-emerald-600' : 'text-slate-600'}>
-                                  {userSt.username} {userSt.profile_id === profile?.id && ` ${t('dashboard.you')}`}
-                                </span>
+                    {/* Info details under the banner image */}
+                    <div className="p-6 pt-5 bg-white text-slate-900 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-extrabold text-xl text-slate-900 tracking-tight leading-tight">
+                            {group.name}
+                          </h3>
+                        </div>
+
+                        {/* Right-aligned badges */}
+                        <div className="flex items-center gap-1.5">
+                          {/* Streak fire badge */}
+                          <div className="bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                            <img
+                              src={playedToday ? streakHot : streakCold}
+                              alt="Streak"
+                              className="w-4 h-4 object-contain select-none"
+                            />
+                            <span>{profile?.streak_count || 0}</span>
+                          </div>
+
+                          {/* Ranking Trophy badge */}
+                          <div className="bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <span>#{userRank || 1}</span>
+                            <span className="text-yellow-500">🏆</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expandable standings list breakdown inside card */}
+                      {standings.length > 0 && (
+                        <div className="pt-3 border-t border-slate-100 space-y-2">
+                          <p className="text-[10px] text-slate-400 font-black tracking-widest uppercase">{t('dashboard.leaderboard')}</p>
+                          <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                            {standings.map((userSt, i) => (
+                              <div key={userSt.profile_id} className="flex justify-between items-center text-xs font-bold py-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-slate-300 w-3 font-black">#{i + 1}</span>
+                                  <span className={userSt.profile_id === profile?.id ? 'text-emerald-600' : 'text-slate-600'}>
+                                    {userSt.username} {userSt.profile_id === profile?.id && ` ${t('dashboard.you')}`}
+                                  </span>
+                                </div>
+                                <span className="text-emerald-600 font-black">{userSt.points} pts</span>
                               </div>
-                              <span className="text-emerald-600 font-black">{userSt.points} pts</span>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    <div className="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl flex justify-between items-center">
-                      <span>{t('dashboard.inviteCode', { code: group.invite_code })}</span>
-                      <span>{t('dashboard.createdAt', { date: new Date(group.created_at).toLocaleDateString() })}</span>
+                      )}
+                      {/* Removed created date block */}
                     </div>
-                  </div>
-                </Link>
-              );
-            })
-          )}
-        </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
 
-        {/* Group Suggestion Box */}
-        <div className="border-2 border-dashed border-indigo-200 rounded-3xl p-5 text-center flex flex-col items-center justify-center space-y-1 bg-white/40 backdrop-blur-sm">
-          <p className="text-sm font-extrabold text-slate-800 flex items-center gap-1">
-            {suggestedName}
-          </p>
-          <p className="text-xs text-slate-500 font-semibold">{t('dashboard.groupSuggestion')}</p>
-        </div>
+          {/* Group Suggestion Box */}
+          <section className="w-full mt-6 border-2 border-dashed border-primary/20 rounded-3xl py-6 flex flex-col items-center justify-center bg-surface-container-lowest/50 backdrop-blur-sm">
+            <h3 className="text-headline-sm font-headline-sm text-on-surface mb-1 flex items-center gap-2">
+              {suggestedName}
+            </h3>
+            <p className="text-body-md font-body-md text-on-surface-variant">
+              {t('dashboard.groupSuggestion')}
+            </p>
+          </section>
 
-        {/* Create/Join Action Buttons */}
-        <div className="pt-4 flex flex-col items-center gap-3">
-          {/* + NUEVO GRUPO button in yellow */}
-          <button
-            onClick={() => {
-              triggerHapticClick();
-              openCreateModal();
-            }}
-            className="w-full py-4 bg-[#fed049] hover:bg-[#fed049]/95 text-slate-900 font-black text-sm uppercase tracking-wider rounded-2xl shadow-md transition-transform active:scale-[0.98]"
-          >
-            {t('dashboard.newGroupBtn')}
-          </button>
+          {/* Create/Join Action Buttons */}
+          <div className="w-full mt-8 flex flex-col gap-4 pb-8">
+            {/* + NUEVO GRUPO button in yellow */}
+            <button
+              onClick={() => {
+                triggerHapticClick();
+                openCreateModal();
+              }}
+              className="w-full py-4 rounded-2xl font-headline-sm text-headline-sm font-bold text-on-tertiary-fixed bg-tertiary-fixed-dim shadow-[0_4px_14px_rgba(249,189,34,0.3)] hover:scale-[0.98] transition-transform flex items-center justify-center gap-2 border-b-4 border-tertiary/20 uppercase"
+            >
+              {t('dashboard.newGroupBtn')}
+            </button>
 
-          {/* Unirse a grupo pill link */}
-          <button
-            onClick={() => {
-              triggerHapticClick();
-              setShowJoinModal(true);
-            }}
-            className="text-xs font-extrabold text-slate-600 bg-white/80 hover:bg-white px-6 py-2.5 rounded-full transition-all border border-slate-200 shadow-sm"
-          >
-            {t('dashboard.joinGroupBtn')}
-          </button>
-        </div>
+            {/* Unirse a grupo pill link */}
+            <button
+              onClick={() => {
+                triggerHapticClick();
+                setShowJoinModal(true);
+              }}
+              className="w-max mx-auto px-8 py-3 rounded-full font-label-bold text-label-bold text-on-surface bg-surface-container-lowest shadow-sm border border-outline-variant/30 hover:scale-[0.98] transition-transform"
+            >
+              {t('dashboard.joinGroupBtn')}
+            </button>
+          </div>
 
-      </main>
+        </main>
+      </div>
 
 
 

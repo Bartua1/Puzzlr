@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -12,11 +12,13 @@ import { ManageGames } from './pages/ManageGames';
 import { GroupStats } from './pages/GroupStats';
 import { useTranslation } from 'react-i18next';
 import { CapacitorShareTarget } from '@capgo/capacitor-share-target'; // Imported the plugin
+import { Splash } from './components/Splash';
 
 const AppContent = () => {
-  const { user, profile, loading } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { user, profile, loading: authLoading } = useAuth();
+  const { i18n } = useTranslation();
   const navigate = useNavigate(); // Hook enabled by moving <Router> to the root App component
+  const [splashFinished, setSplashFinished] = useState(false);
 
   useEffect(() => {
     if (profile?.language) {
@@ -68,14 +70,13 @@ const AppContent = () => {
     };
   }, [navigate, user]);
 
-  if (loading) {
+  if (!splashFinished) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin"></div>
-          <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">{t('app.loading')}</p>
-        </div>
-      </div>
+      <Splash
+        isLoading={authLoading}
+        onFinishedLoading={() => setSplashFinished(true)}
+        loadingDuration={3000}
+      />
     );
   }
 

@@ -126,6 +126,40 @@ export const useShop = () => {
     return { success: false };
   };
 
+  const adminBuyCosmetic = async (cosmeticId: string): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Not authenticated' };
+    try {
+      const { data, error } = await supabase.rpc('admin_purchase_cosmetic_rpc', {
+        p_cosmetic_id: cosmeticId,
+      });
+      if (error) return { success: false, message: error.message };
+      const res = data as { success: boolean; message: string };
+      if (res.success) {
+        await Promise.all([fetchUnlockedCosmetics(), refreshProfile()]);
+        return { success: true, message: res.message };
+      }
+      return { success: false, message: res.message };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Admin purchase failed' };
+    }
+  };
+
+  const adminResetInventory = async (): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Not authenticated' };
+    try {
+      const { data, error } = await supabase.rpc('admin_reset_inventory_rpc');
+      if (error) return { success: false, message: error.message };
+      const res = data as { success: boolean; message: string };
+      if (res.success) {
+        await Promise.all([fetchUnlockedCosmetics(), fetchCosmetics(), refreshProfile()]);
+        return { success: true, message: res.message };
+      }
+      return { success: false, message: res.message };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Inventory reset failed' };
+    }
+  };
+
   return {
     cosmetics,
     unlockedIds,
@@ -134,6 +168,8 @@ export const useShop = () => {
     buyStreakProtector,
     equipCosmetic,
     refreshShop: loadData,
+    adminBuyCosmetic,
+    adminResetInventory,
   };
 };
 
