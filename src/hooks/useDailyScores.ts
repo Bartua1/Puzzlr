@@ -67,7 +67,7 @@ export const useDailyScores = () => {
     rawText: string,
     score: number,
     maxScore: number
-  ): Promise<{ success: boolean; message: string; pointsEarned?: number }> => {
+  ): Promise<{ success: boolean; message: string; pointsEarned?: number; newStreakCount?: number }> => {
     if (!user) return { success: false, message: 'Not authenticated' };
 
     const today = new Date().toISOString().split('T')[0];
@@ -85,7 +85,7 @@ export const useDailyScores = () => {
         return { success: false, message: error.message };
       }
 
-      const res = data as { success: boolean; message: string; points_earned?: number };
+      const res = data as { success: boolean; message: string; points_earned?: number; new_streak_count?: number };
 
       if (res.success) {
         await Promise.all([fetchTodayScores(), refreshProfile()]);
@@ -93,6 +93,7 @@ export const useDailyScores = () => {
           success: true,
           message: res.message,
           pointsEarned: res.points_earned,
+          newStreakCount: res.new_streak_count,
         };
       } else {
         return { success: false, message: res.message };

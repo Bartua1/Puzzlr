@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useDailyScores } from '../hooks/useDailyScores';
 import { useGroups } from '../hooks/useGroups';
@@ -13,6 +13,7 @@ import streakHot from '../assets/streak_hot.svg';
 import streakCold from '../assets/streak_cold.svg';
 import streakProtector from '../assets/streak_protector.svg';
 import { supabase } from '../services/supabase';
+import { AvatarViewer } from '../components/AvatarViewer';
 
 
 
@@ -38,12 +39,17 @@ const SUGGESTED_NAMES = [
 
 export const Dashboard = () => {
   const { profile } = useAuth();
-  const { games, scores, submitScore } = useDailyScores();
+  const { scores, submitScore } = useDailyScores();
   const { groups, createGroup, joinGroup, loading: groupsLoading, getStandings, getGroupMembers } = useGroups();
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [clipboardText, setClipboardText] = useState('');
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [showStreakAnimation, setShowStreakAnimation] = useState(false);
+  const [streakAnimationValue, setStreakAnimationValue] = useState(0);
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [solvedDates, setSolvedDates] = useState<string[]>([]);
@@ -106,6 +112,14 @@ export const Dashboard = () => {
   const [groupStandings, setGroupStandings] = useState<Record<string, any[]>>({});
   const [groupMembers, setGroupMembers] = useState<Record<string, any[]>>({});
   const [mutedGroups, setMutedGroups] = useState<Record<string, boolean>>({});
+  const [cosmetics, setCosmetics] = useState<any[]>([]);
+
+  // Fetch cosmetics for character resolution
+  useEffect(() => {
+    supabase.from('cosmetics').select('*').then(({ data }) => {
+      if (data) setCosmetics(data);
+    });
+  }, []);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -179,28 +193,65 @@ export const Dashboard = () => {
     }
   }, [groups]);
 
-  const handleSubmitScore = async () => {
-    if (!clipboardText.trim()) return;
+  const processSubmission = async (text: string) => {
+    if (!text.trim()) return;
     await triggerHapticClick();
     setSubmitMessage(null);
 
-    const parsed = parseShareText(clipboardText);
+    const parsed = parseShareText(text);
     if (!parsed) {
       await triggerHapticError();
-      setSubmitMessage({ type: 'error', text: t('dashboard.submitError') });
+      setSubmitMessage({ type: 'error', text: t('dashboard.errors.failedToParse', 'Failed to parse the minigame. Please try again.') });
+      return;
+    }
+
+    // Check if user has any groups joined
+    if (groups.length === 0) {
+      await triggerHapticError();
+      setSubmitMessage({
+        type: 'error',
+        text: t('dashboard.errors.noGroupsWithGame', 'You dont have any group with this minigame. Please add this minigame to a group or create a new group with this minigame.')
+      });
+      return;
+    }
+
+    // Query active games for the user's groups to see if the minigame is assigned to any of them
+    const gameIdsToCheck = parsed.gameId === 'wordle_es' || parsed.gameId === 'la_palabra'
+      ? ['wordle_es', 'la_palabra']
+      : [parsed.gameId];
+
+    // Query active games for the user's groups to see if the minigame is assigned to any of them
+    const { data: activeGroupGames, error: activeErr } = await supabase
+      .from('group_games')
+      .select('group_id')
+      .in('game_id', gameIdsToCheck)
+      .in('group_id', groups.map(g => g.id));
+
+    if (activeErr || !activeGroupGames || activeGroupGames.length === 0) {
+      await triggerHapticError();
+      setSubmitMessage({
+        type: 'error',
+        text: t('dashboard.errors.noGroupsWithGame', 'You dont have any group with this minigame. Please add this minigame to a group or create a new group with this minigame.')
+      });
       return;
     }
 
     // Check if user already submitted this game today
-    const alreadySubmitted = scores.some((s) => s.game_id === parsed.gameId);
+    const alreadySubmitted = scores.some((s) => 
+      s.game_id === parsed.gameId || 
+      ((parsed.gameId === 'wordle_es' || parsed.gameId === 'la_palabra') && 
+       (s.game_id === 'wordle_es' || s.game_id === 'la_palabra'))
+    );
     if (alreadySubmitted) {
       await triggerHapticError();
       setSubmitMessage({ type: 'error', text: t('dashboard.alreadySubmitted') });
       return;
     }
 
+    const isFirstSubmissionToday = scores.length === 0;
+
     // Submit via RPC
-    const res = await submitScore(parsed.gameId, clipboardText, parsed.score, parsed.maxScore);
+    const res = await submitScore(parsed.gameId, text, parsed.score, parsed.maxScore);
     if (res.success) {
       await triggerHapticSuccess();
       setSubmitMessage({
@@ -213,14 +264,44 @@ export const Dashboard = () => {
         const standings = await getStandings(g.id);
         setGroupStandings((prev) => ({ ...prev, [g.id]: standings }));
       });
+
+      // Show streak animation if first submission today
+      if (isFirstSubmissionToday) {
+        setStreakAnimationValue(res.newStreakCount || (profile?.streak_count || 0) + 1);
+        setShowStreakAnimation(true);
+      }
+
       setTimeout(() => {
         setShowSubmitModal(false);
         setSubmitMessage(null);
-      }, 1500);
+      }, 2000);
     } else {
       await triggerHapticError();
       setSubmitMessage({ type: 'error', text: res.message });
     }
+  };
+
+  // Listen for native share target events forwarded via route state
+  useEffect(() => {
+    const locState = location.state as any;
+    if (locState?.sharedText) {
+      const text = locState.sharedText;
+      // Clear navigation state to prevent re-submitting on reload/re-render
+      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Open modal, set clipboardText, and auto-submit
+      setShowSubmitModal(true);
+      setClipboardText(text);
+      
+      // Process submission automatically after a slight delay to allow modal render
+      setTimeout(() => {
+        processSubmission(text);
+      }, 500);
+    }
+  }, [location.state, navigate, groups, scores]);
+
+  const handleSubmitScore = async () => {
+    await processSubmission(clipboardText);
   };
 
   const handleCreateGroup = async (e: React.FormEvent) => {
@@ -265,7 +346,7 @@ export const Dashboard = () => {
 
   if (showCreateModal) {
     return (
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-[safe] pb-[safe]">
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-safe pb-safe">
         {/* Full-view header */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/50 backdrop-blur-md">
           <button
@@ -507,7 +588,7 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-[safe] pb-[safe]">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-safe pb-safe">
       {/* Top Navbar */}
       <header className="flex items-center justify-between px-6 py-4">
         {/* Brand/Logo */}
@@ -525,8 +606,8 @@ export const Dashboard = () => {
               setShowCalendar(!showCalendar);
             }}
             className={`flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border text-sm font-extrabold shadow-sm hover:shadow transition-all active:scale-95 ${playedToday
-                ? 'text-orange-600 border-orange-200 bg-orange-50'
-                : 'text-sky-600 border-sky-300 bg-sky-50/80 animate-pulse shadow-[0_0_12px_rgba(14,165,233,0.45)]'
+              ? 'text-orange-600 border-orange-200 bg-orange-50'
+              : 'text-sky-600 border-sky-300 bg-sky-50/80 animate-pulse shadow-[0_0_12px_rgba(14,165,233,0.45)]'
               }`}
             title="Streak Progress"
           >
@@ -563,8 +644,8 @@ export const Dashboard = () => {
 
       {/* Mini Calendar Drawer - Moves the rest of the UI down */}
       <div className={`bg-white/95 border-slate-200/50 shadow-sm transition-all duration-500 ease-in-out overflow-hidden ${showCalendar
-          ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
-          : 'max-h-0 py-0 px-6 opacity-0 border-y-0'
+        ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
+        : 'max-h-0 py-0 px-6 opacity-0 border-y-0'
         }`}>
         <div className="max-w-md mx-auto space-y-4">
 
@@ -640,10 +721,10 @@ export const Dashboard = () => {
                 <div key={dateStr} className="flex flex-col items-center justify-center h-9">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs border-2 transition-all relative ${isSolved
-                        ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-white shadow-sm'
-                        : isToday
-                          ? 'border-indigo-400 border-dashed text-slate-800 bg-slate-50'
-                          : 'bg-slate-50 border-slate-100 text-slate-300'
+                      ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-white shadow-sm'
+                      : isToday
+                        ? 'border-indigo-400 border-dashed text-slate-800 bg-slate-50'
+                        : 'bg-slate-50 border-slate-100 text-slate-300'
                       }`}
                     title={isSolved ? 'Solved!' : 'Cold day'}
                   >
@@ -725,13 +806,14 @@ export const Dashboard = () => {
                       {members.slice(0, 4).map((member, idx) => (
                         <div
                           key={member.profile_id || idx}
-                          className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-md"
+                          className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-visible"
                           style={{ zIndex: 10 - idx }}
+                          title={member.username}
                         >
-                          <img
-                            src={member.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${member.username}`}
-                            alt={member.username}
-                            className="w-full h-full object-cover"
+                          <AvatarViewer
+                            characterKey={cosmetics.find(c => c.id === member.equipped_character_id)?.asset_key || 'char_base'}
+                            badgeKey={cosmetics.find(c => c.id === member.equipped_badge_id)?.asset_key || ''}
+                            size="md"
                           />
                         </div>
                       ))}
@@ -910,8 +992,8 @@ export const Dashboard = () => {
               {submitMessage && (
                 <div
                   className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2 ${submitMessage.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-amber-50 text-amber-700'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-amber-50 text-amber-700'
                     }`}
                 >
                   {submitMessage.type === 'success' ? (
@@ -931,6 +1013,54 @@ export const Dashboard = () => {
                 {t('dashboard.pasteButton')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* STREAK INCREASE ANIMATION MODAL */}
+      {showStreakAnimation && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400 text-white rounded-[32px] max-w-sm w-full p-8 shadow-2xl relative border border-white/20 transform scale-100 transition-all duration-300 flex flex-col items-center text-center space-y-6 animate-scale-up">
+            
+            {/* Sparkles / Effects */}
+            <div className="absolute top-4 right-6 text-2xl animate-ping opacity-60">✨</div>
+            <div className="absolute bottom-6 left-6 text-xl animate-bounce">⭐</div>
+            
+            {/* Animated Fire Icon */}
+            <div className="relative w-28 h-28 flex items-center justify-center bg-white/20 rounded-full border border-white/30 shadow-lg animate-pulse">
+              <img
+                src={streakHot}
+                alt="Streak Fire"
+                className="w-20 h-20 object-contain select-none"
+              />
+            </div>
+            
+            {/* Text */}
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black tracking-tight uppercase drop-shadow-sm">
+                {t('dashboard.streakIncreased', 'Streak Increased!')}
+              </h2>
+              <p className="text-xs font-semibold opacity-90 leading-relaxed">
+                Your daily puzzle solving streak is heating up! Keep it going tomorrow.
+              </p>
+            </div>
+            
+            {/* Streak Count Circle */}
+            <div className="bg-white text-orange-600 rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-lg border border-orange-200">
+              <span className="text-3xl font-black leading-none tabular-nums">{streakAnimationValue}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">Days</span>
+            </div>
+            
+            {/* CTA Close Button */}
+            <button
+              onClick={async () => {
+                await triggerHapticClick();
+                setShowStreakAnimation(false);
+              }}
+              className="w-full py-4 bg-white hover:bg-slate-50 text-orange-600 font-black rounded-2xl transition-all text-sm uppercase tracking-wider shadow-md active:scale-[0.98] cursor-pointer"
+            >
+              Sweet!
+            </button>
           </div>
         </div>
       )}

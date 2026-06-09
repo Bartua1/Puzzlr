@@ -16,6 +16,8 @@ export interface Standing {
   profile_id: string;
   username: string;
   avatar_url: string | null;
+  equipped_character_id?: string | null;
+  equipped_badge_id?: string | null;
   points: number;
 }
 
@@ -145,19 +147,44 @@ export const useGroups = () => {
 
   const getStandings = async (groupId: string): Promise<Standing[]> => {
     // 1. Get active season for the group
-    const { data: seasonData } = await supabase
+    let { data: seasonData } = await supabase
       .from('seasons')
       .select('id')
       .eq('group_id', groupId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (!seasonData) return [];
+    if (!seasonData) {
+      // Create default active season for this group
+      const today = new Date();
+      const startDate = today.toISOString().split('T')[0];
+      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate())
+        .toISOString()
+        .split('T')[0]; // 1-month season default
+
+      const { data: newSeason, error: insertErr } = await supabase
+        .from('seasons')
+        .insert({
+          group_id: groupId,
+          start_date: startDate,
+          end_date: endDate,
+          is_active: true,
+        })
+        .select('id')
+        .single();
+
+      if (!insertErr && newSeason) {
+        seasonData = newSeason;
+      } else {
+        console.error('Failed to automatically create season in getStandings:', insertErr);
+        return [];
+      }
+    }
 
     // 2. Fetch points
     const { data: pointsData, error } = await supabase
       .from('group_season_points')
-      .select('points, profile_id, profiles(username, avatar_url)')
+      .select('points, profile_id, profiles(username, avatar_url, equipped_character_id, equipped_badge_id)')
       .eq('group_id', groupId)
       .eq('season_id', seasonData.id)
       .order('points', { ascending: false });
@@ -168,6 +195,8 @@ export const useGroups = () => {
       profile_id: row.profile_id,
       username: row.profiles?.username || 'Unknown',
       avatar_url: row.profiles?.avatar_url || null,
+      equipped_character_id: row.profiles?.equipped_character_id || null,
+      equipped_badge_id: row.profiles?.equipped_badge_id || null,
       points: row.points,
     }));
   };
@@ -175,7 +204,7 @@ export const useGroups = () => {
   const getGroupMembers = async (groupId: string): Promise<any[]> => {
     const { data, error } = await supabase
       .from('group_members')
-      .select('profile_id, profiles(username, avatar_url)')
+      .select('profile_id, profiles(username, avatar_url, equipped_character_id, equipped_badge_id)')
       .eq('group_id', groupId);
 
     if (error || !data) return [];
@@ -183,6 +212,8 @@ export const useGroups = () => {
       profile_id: row.profile_id,
       username: row.profiles?.username || 'Unknown',
       avatar_url: row.profiles?.avatar_url || null,
+      equipped_character_id: row.profiles?.equipped_character_id || null,
+      equipped_badge_id: row.profiles?.equipped_badge_id || null,
     }));
   };
 

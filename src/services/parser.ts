@@ -26,6 +26,23 @@ export function parseShareText(text: string): ParsedScore | null {
     };
   }
 
+  // 1.5 Spanish Wordle (La palabra del día)
+  // Format: La palabra del día #1614 3/6 or La palabra del día #1614 X/6
+  const laPalabraRegex = /(?:La\s+palabra\s+del\s+d[ií]a)\s*#?([\d,]+)\s+([1-6xX])\/6/i;
+  const laPalabraMatch = cleanText.match(laPalabraRegex);
+  if (laPalabraMatch) {
+    const puzzleNumber = laPalabraMatch[1].replace(/,/g, '');
+    const scoreChar = laPalabraMatch[2].toUpperCase();
+    const score = scoreChar === 'X' ? 0 : parseInt(scoreChar, 10);
+    return {
+      gameId: 'wordle_es',
+      gameName: 'La Palabra del Día',
+      score: score === 0 ? 0 : 7 - score, // 6 attempts left = 6 pts, 1 attempt left = 1 pt, failed = 0 pts
+      maxScore: 6,
+      puzzleNumber,
+    };
+  }
+
   // 2. Group Categorization Game (Connections-like)
   // Format: Connections Puzzle #123 (or similar)
   const connectionsRegex = /(?:Connections|Group\s+Categorization\s+Game)\s*(?:Puzzle\s*)?#?([\d,]+)/i;

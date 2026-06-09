@@ -74,7 +74,7 @@ export const Settings = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-[safe] pb-[safe]">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-emerald-50 text-slate-800 pt-safe pb-safe">
       <div className="max-w-md w-full mx-auto px-4 py-8 flex-1 flex flex-col justify-center">
         {/* Back navigation header */}
         <div className="flex items-center gap-3 mb-6">

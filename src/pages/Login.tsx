@@ -9,33 +9,80 @@ export const Login = () => {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
-
     setErrorMsg('');
+    setSuccessMsg('');
+
+    if (isSignUp) {
+      if (!username.trim()) {
+        await triggerHapticError();
+        setErrorMsg(t('login.errors.authFailed'));
+        return;
+      }
+      if (!email.trim()) {
+        await triggerHapticError();
+        setErrorMsg(t('login.errors.authFailed'));
+        return;
+      }
+      if (password.length < 6) {
+        await triggerHapticError();
+        setErrorMsg(t('login.errors.passwordTooShort'));
+        return;
+      }
+      if (password !== confirmPassword) {
+        await triggerHapticError();
+        setErrorMsg(t('login.errors.passwordsMustMatch'));
+        return;
+      }
+    } else {
+      if (!email.trim() || !password) {
+        await triggerHapticError();
+        setErrorMsg(t('login.errors.authFailed'));
+        return;
+      }
+    }
+
     setLoading(true);
     await triggerHapticClick();
 
-    const action = isSignUp ? signUp : signIn;
-    const res = await action(username);
-
-    if (res.success) {
-      await triggerHapticSuccess();
+    if (isSignUp) {
+      const res = await signUp(email, password, username);
+      if (res.success) {
+        await triggerHapticSuccess();
+        setSuccessMsg(t('login.checkInbox'));
+        // Clean passwords and switch to Sign In mode
+        setPassword('');
+        setConfirmPassword('');
+        setIsSignUp(false);
+      } else {
+        await triggerHapticError();
+        setErrorMsg(res.error || t('login.errors.authFailed'));
+      }
     } else {
-      await triggerHapticError();
-      setErrorMsg(res.error || t('login.errors.authFailed'));
-      setLoading(false);
+      const res = await signIn(email, password);
+      if (res.success) {
+        await triggerHapticSuccess();
+      } else {
+        await triggerHapticError();
+        setErrorMsg(res.error || t('login.errors.authFailed'));
+      }
     }
+    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     await triggerHapticClick();
     const res = await signInWithGoogle();
@@ -68,6 +115,12 @@ export const Login = () => {
           {errorMsg && (
             <div className="p-3.5 mb-4 bg-amber-50 rounded-2xl text-amber-700 text-xs font-semibold leading-normal">
               {errorMsg}
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3.5 mb-4 bg-emerald-50 rounded-2xl text-emerald-700 text-xs font-semibold leading-normal">
+              {successMsg}
             </div>
           )}
 
@@ -120,29 +173,81 @@ export const Login = () => {
             </div>
           ) : (
             <div>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {isSignUp && (
+                  <div>
+                    <label htmlFor="username" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      {t('login.usernameLabel')}
+                    </label>
+                    <input
+                      id="username"
+                      type="text"
+                      required
+                      disabled={loading}
+                      placeholder={t('login.usernamePlaceholder')}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <label htmlFor="username" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                    {t('login.usernameEmailLabel')}
+                  <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    {t('login.emailLabel')}
                   </label>
                   <input
-                    id="username"
-                    type="text"
+                    id="email"
+                    type="email"
                     required
                     disabled={loading}
-                    placeholder={t('login.usernamePlaceholder')}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder={t('login.emailPlaceholder')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                   />
                 </div>
 
+                <div>
+                  <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    {t('login.passwordLabel')}
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    disabled={loading}
+                    placeholder={t('login.passwordPlaceholder')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                  />
+                </div>
+
+                {isSignUp && (
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      {t('login.confirmPasswordLabel')}
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      required
+                      disabled={loading}
+                      placeholder={t('login.confirmPasswordPlaceholder')}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                    />
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={loading || !username.trim()}
-                  className="w-full py-3.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 font-bold rounded-2xl shadow-sm transition-all flex items-center justify-center cursor-pointer"
+                  disabled={loading || (isSignUp ? (!username.trim() || !email.trim() || !password || !confirmPassword) : (!email.trim() || !password))}
+                  className="w-full py-3.5 mt-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 font-bold rounded-2xl shadow-sm transition-all flex items-center justify-center cursor-pointer"
                 >
-                  {loading ? t('login.loggingIn') : t('login.cta')}
+                  {loading ? t('login.loggingIn') : (isSignUp ? t('login.signUpCta') : t('login.signInCta'))}
                 </button>
               </form>
 
@@ -151,6 +256,8 @@ export const Login = () => {
                   onClick={() => {
                     triggerHapticClick();
                     setIsSignUp(!isSignUp);
+                    setErrorMsg('');
+                    setSuccessMsg('');
                   }}
                   className="text-xs text-slate-500 hover:text-slate-800 font-bold underline decoration-slate-200 hover:decoration-slate-400 transition-all cursor-pointer"
                 >
@@ -161,6 +268,8 @@ export const Login = () => {
                   onClick={() => {
                     triggerHapticClick();
                     setShowEmailForm(false);
+                    setErrorMsg('');
+                    setSuccessMsg('');
                   }}
                   className="text-xs text-slate-400 hover:text-slate-600 font-bold transition-all cursor-pointer"
                 >

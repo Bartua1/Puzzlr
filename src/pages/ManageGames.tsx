@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabase';
 import { triggerHapticClick } from '../utils/haptics';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown } from 'lucide-react';
 import { DisclaimerFooter } from '../components/DisclaimerFooter';
 
 interface Game {
@@ -34,18 +34,6 @@ const LinkedInIcon = () => (
   </svg>
 );
 
-const LaPlabIcon = () => (
-  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="48" height="48" rx="12" fill="#c0392b" />
-    {/* Spanish flag-inspired horizontal stripes */}
-    <rect x="8" y="14" width="32" height="6" rx="2" fill="#f39c12" />
-    <rect x="8" y="22" width="32" height="4" rx="1" fill="white" opacity="0.6" />
-    <rect x="8" y="28" width="32" height="6" rx="2" fill="#f39c12" />
-    {/* Letter A for "Palabra" */}
-    <text x="24" y="30" textAnchor="middle" fontSize="13" fontWeight="900"
-      fontFamily="Arial,sans-serif" fill="#c0392b">A</text>
-  </svg>
-);
 
 const OtherIcon = () => (
   <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -221,21 +209,30 @@ const ZipIcon = () => (
 
 const WordleEsIcon = () => (
   <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <rect width="36" height="36" rx="8" fill="#c0392b" />
+    {/* White background with a subtle border */}
+    <rect width="36" height="36" rx="8" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
+    {[0, 1, 2, 3, 4].map(col => {
+      let color = '#cbd5e1';
+      if (col === 1) color = '#f39c12';
+      if (col === 3) color = '#2ecc71';
+      return (
+        <rect key={col} x={5 + col * 6} y="10" width="4" height="4" rx="1" fill={color} />
+      );
+    })}
+    {[0, 1, 2, 3, 4].map(col => {
+      let color = '#cbd5e1';
+      if (col === 0) color = '#2ecc71';
+      if (col === 2) color = '#f39c12';
+      return (
+        <rect key={col} x={5 + col * 6} y="16" width="4" height="4" rx="1" fill={color} />
+      );
+    })}
     {[0, 1, 2, 3, 4].map(col => (
-      <rect key={col} x={5 + col * 6} y="10" width="4" height="4" rx="1"
-        fill={col === 1 ? '#f39c12' : col === 3 ? 'white' : 'rgba(255,255,255,0.35)'} />
+      <rect key={col} x={5 + col * 6} y="22" width="4" height="4" rx="1" fill="#cbd5e1" />
     ))}
-    {[0, 1, 2, 3, 4].map(col => (
-      <rect key={col} x={5 + col * 6} y="16" width="4" height="4" rx="1"
-        fill={col === 0 ? 'white' : col === 2 ? '#f39c12' : 'rgba(255,255,255,0.35)'} />
-    ))}
-    {[0, 1, 2, 3, 4].map(col => (
-      <rect key={col} x={5 + col * 6} y="22" width="4" height="4" rx="1"
-        fill='rgba(255,255,255,0.35)' />
-    ))}
-    {/* ES flag stripe */}
-    <rect x="5" y="28" width="26" height="3" rx="1.5" fill="#f39c12" opacity="0.7" />
+    {/* ES flag stripe (red-yellow-red) */}
+    <rect x="5" y="28" width="26" height="4" rx="1" fill="#c0392b" />
+    <rect x="5" y="29" width="26" height="2" fill="#f39c12" />
   </svg>
 );
 
@@ -265,8 +262,7 @@ const GAME_META: Record<string, { icon: React.FC; origin: string; genericName: s
   pinpoint: { icon: PinpointIcon, origin: 'linkedin', genericName: 'Pinpoint Clues' },
   tango: { icon: TangoIcon, origin: 'linkedin', genericName: 'Balance Puzzle' },
   zip: { icon: ZipIcon, origin: 'linkedin', genericName: 'Path Puzzle' },
-  la_palabra: { icon: LaPlabIcon, origin: 'lapalabra', genericName: 'La Palabra del Día' },
-  wordle_es: { icon: WordleEsIcon, origin: 'lapalabra', genericName: 'Palabra de 5 Letras' },
+  wordle_es: { icon: WordleEsIcon, origin: 'lapalabra', genericName: 'La Palabra del Día' },
 };
 
 const getMeta = (gameId: string) =>
@@ -310,7 +306,7 @@ const ORIGIN_GROUPS = [
     bgLight: 'bg-red-50',
     borderColor: 'border-red-100',
     iconBg: 'bg-red-50',
-    icon: LaPlabIcon,
+    icon: WordleEsIcon,
   },
   {
     key: 'other',
@@ -338,6 +334,7 @@ export const ManageGames = () => {
   const [activeGameIds, setActiveGameIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null); // gameId being toggled
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -377,10 +374,8 @@ export const ManageGames = () => {
   const gamesByOrigin = (originKey: string) =>
     allGames.filter(g => getMeta(g.id).origin === originKey);
 
-  const activeCount = activeGameIds.length;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 text-slate-800 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 text-slate-800 font-sans pt-safe">
 
       {/* ── Minimal Header (Blends completely with the page body) ── */}
       <header className="relative z-20 max-w-lg mx-auto px-4 pt-6">
@@ -394,7 +389,7 @@ export const ManageGames = () => {
       </header>
 
       {/* ── Body ── */}
-      <main className="max-w-lg mx-auto px-4 py-4 pb-24 space-y-8">
+      <main className="max-w-lg mx-auto px-4 py-4 pb-24 space-y-6">
 
         {loading && (
           <div className="flex flex-col items-center gap-3 py-20">
@@ -409,12 +404,23 @@ export const ManageGames = () => {
 
           const OriginIcon = group.icon;
           const activeInGroup = games.filter(g => activeGameIds.includes(g.id)).length;
+          const isExpanded = !!expandedGroups[group.key];
 
           return (
-            <section key={group.key} className="space-y-3">
-              {/* ── Section header ── */}
-              <div className="flex items-center gap-3 px-1">
-                <div className={`w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 shadow-sm`}>
+            <section key={group.key} className="space-y-3 bg-white/40 border border-slate-100 rounded-3xl p-3 transition-all">
+              {/* ── Section header (Collapsible toggle) ── */}
+              <button
+                type="button"
+                onClick={async () => {
+                  await triggerHapticClick();
+                  setExpandedGroups(prev => ({
+                    ...prev,
+                    [group.key]: !prev[group.key]
+                  }));
+                }}
+                className="w-full flex items-center gap-3 px-1 py-1.5 text-left cursor-pointer group/hdr hover:bg-slate-100/60 rounded-2xl transition-all focus:outline-none"
+              >
+                <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
                   <OriginIcon />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -425,63 +431,69 @@ export const ManageGames = () => {
                     {activeInGroup}/{games.length} active
                   </p>
                 </div>
-                {/* Thin accent line */}
-                <div className={`flex-1 h-px ${group.accent} opacity-20 rounded-full`} />
-              </div>
+                {/* Chevron Down indicator */}
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-450 transition-transform duration-250 mr-1 ${
+                    isExpanded ? 'rotate-180 text-slate-800' : ''
+                  }`}
+                />
+              </button>
 
-              {/* ── Game cards ── */}
-              <div className="space-y-2">
-                {games.map(game => {
-                  const meta = getMeta(game.id);
-                  const GameIcon = meta.icon;
-                  const isActive = activeGameIds.includes(game.id);
-                  const isSaving = saving === game.id;
-                  const displayName = meta.genericName || game.display_name;
+              {/* ── Game cards (Rendered when expanded) ── */}
+              {isExpanded && (
+                <div className="space-y-2 animate-fade-in pt-1">
+                  {games.map(game => {
+                    const meta = getMeta(game.id);
+                    const GameIcon = meta.icon;
+                    const isActive = activeGameIds.includes(game.id);
+                    const isSaving = saving === game.id;
+                    const displayName = meta.genericName || game.display_name;
 
-                  return (
-                    <button
-                      key={game.id}
-                      onClick={() => handleToggle(game.id)}
-                      disabled={isSaving}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 text-left group active:scale-[0.98] ${isActive
-                        ? `${group.bgLight} ${group.borderColor} shadow-sm`
-                        : 'bg-white border-slate-100 hover:bg-slate-50'
-                        } ${isSaving ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
-                    >
-                      {/* Game icon */}
-                      <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
-                        <GameIcon />
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-black text-slate-900 leading-tight truncate">
-                            {displayName}
-                            Esp                           </span>
+                    return (
+                      <button
+                        key={game.id}
+                        onClick={() => handleToggle(game.id)}
+                        disabled={isSaving}
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 text-left group active:scale-[0.98] ${isActive
+                          ? `${group.bgLight} ${group.borderColor} shadow-sm`
+                          : 'bg-white border-slate-100 hover:bg-slate-50'
+                          } ${isSaving ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+                      >
+                        {/* Game icon */}
+                        <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+                          <GameIcon />
                         </div>
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? group.textAccent : 'text-slate-400'
-                          }`}>
-                          {game.base_points} base pts · {group.labelShort}
-                        </span>
-                      </div>
 
-                      {/* Toggle indicator */}
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${isActive
-                        ? `${group.accent} border-transparent`
-                        : 'border-slate-300 bg-white group-hover:border-slate-400'
-                        }`}>
-                        {isActive && (
-                          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                        )}
-                        {isSaving && (
-                          <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-black text-slate-900 leading-tight truncate">
+                              {displayName}
+                            </span>
+                          </div>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? group.textAccent : 'text-slate-400'
+                            }`}>
+                            {game.base_points} base pts · {group.labelShort}
+                          </span>
+                        </div>
+
+                        {/* Toggle indicator */}
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${isActive
+                          ? `${group.accent} border-transparent`
+                          : 'border-slate-300 bg-white group-hover:border-slate-400'
+                          }`}>
+                          {isActive && (
+                            <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                          )}
+                          {isSaving && (
+                            <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           );
         })}
