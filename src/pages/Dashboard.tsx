@@ -587,9 +587,9 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-gradient-to-b from-surface-container-low to-surface-container text-on-surface font-body-md pb-24 pt-safe pb-safe">
+    <div className="flex flex-col w-full min-h-screen bg-gradient-to-b from-surface-container-low to-surface-container text-on-surface font-body-md pb-24 pb-safe">
       {/* Top Navbar */}
-      <header className="flex justify-between items-center px-margin-mobile h-16 w-full z-50 fixed top-0 bg-surface-container-low/90 backdrop-blur-md border-b border-white/10">
+      <header className="flex justify-between items-center px-margin-mobile w-full z-50 fixed top-0 pt-safe bg-surface-container-low/90 backdrop-blur-md border-b border-white/10" style={{ paddingBottom: '1rem' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary-fixed shadow-sm">
             <img
@@ -649,7 +649,7 @@ export const Dashboard = () => {
       </header>
 
       {/* Content Wrapper to offset the fixed header */}
-      <div className="w-full pt-16 flex-1 flex flex-col">
+        <div className="w-full flex-1 flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}>
         {/* Mini Calendar Drawer - Moves the rest of the UI down */}
         <div className={`bg-white/95 border-slate-200/50 shadow-sm transition-all duration-500 ease-in-out overflow-hidden ${showCalendar
           ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
