@@ -3,23 +3,27 @@ import Combine
 
 enum SubmissionState {
     case parsing
-    case loading(gameName: String, scoreText: String)
+    case loading(gameId: String, scoreText: String)
     case success(message: String)
     case error(message: String)
     case notAuthenticated
     case notParsed
 }
 
+@MainActor
 class ShareViewModel: ObservableObject {
     @Published var state: SubmissionState = .parsing
+    @Published var language: String = "en"
     
     let APP_GROUP_ID = "group.com.gonzalo.puzzlr"
     
     var onFinished: (() -> Void)?
     
     func processSharedText(_ text: String) {
-        // 1. Check if authenticated
         let userDefaults = UserDefaults(suiteName: APP_GROUP_ID)
+        self.language = userDefaults?.string(forKey: "supabase_language") ?? "en"
+        
+        // 1. Check if authenticated
         guard let supabaseUrl = userDefaults?.string(forKey: "supabase_url"),
               let supabaseAnonKey = userDefaults?.string(forKey: "supabase_anon_key"),
               let accessToken = userDefaults?.string(forKey: "supabase_access_token"),
@@ -35,7 +39,7 @@ class ShareViewModel: ObservableObject {
         }
         
         let scoreText = "\(parsedScore.score) / \(parsedScore.maxScore)"
-        self.state = .loading(gameName: parsedScore.gameName, scoreText: scoreText)
+        self.state = .loading(gameId: parsedScore.gameId, scoreText: scoreText)
         
         // 3. Submit score to Supabase
         Task {
@@ -44,7 +48,8 @@ class ShareViewModel: ObservableObject {
                 supabaseAnonKey: supabaseAnonKey,
                 accessToken: accessToken,
                 score: parsedScore,
-                rawText: text
+                rawText: text,
+                language: self.language
             )
             
             await MainActor.run {
@@ -63,8 +68,56 @@ class ShareViewModel: ObservableObject {
     }
 }
 
+struct LocalizedStrings {
+    static func translate(_ key: String, lang: String) -> String {
+        let isEs = lang.lowercased().hasPrefix("es")
+        switch key {
+        case "close":
+            return isEs ? "Cerrar" : "Close"
+        case "analyzing":
+            return isEs ? "Analizando texto compartido..." : "Analyzing shared text..."
+        case "saving":
+            return isEs ? "Guardando tu puntuación..." : "Saving your score..."
+        case "success":
+            return isEs ? "¡Éxito!" : "Success!"
+        case "submission_failed":
+            return isEs ? "Error de Envío" : "Submission Failed"
+        case "not_logged_in":
+            return isEs ? "Sesión no Iniciada" : "Not Logged In"
+        case "login_instruction":
+            return isEs ? "Por favor, abre Puzzlr e inicia sesión primero para enviar tus puntuaciones." : "Please open Puzzlr and log in first to submit your scores."
+        case "unknown_format":
+            return isEs ? "Formato de Puntuación Desconocido" : "Unknown Score Format"
+        case "format_instruction":
+            return isEs ? "No se pudo reconocer el formato de la puntuación diaria en el contenido compartido." : "Could not recognize daily score format in the shared content."
+        default:
+            return key
+        }
+    }
+}
+
 struct ShareView: View {
     @ObservedObject var viewModel: ShareViewModel
+    
+    private func t(_ key: String) -> String {
+        return LocalizedStrings.translate(key, lang: viewModel.language)
+    }
+    
+    private func translateGameName(_ gameId: String) -> String {
+        let isEs = viewModel.language.lowercased().hasPrefix("es")
+        switch gameId {
+        case "word_grid":
+            return isEs ? "La Palabra del Día" : "Daily Word Grid"
+        case "wordle_es":
+            return "La Palabra del Día"
+        case "word_group":
+            return isEs ? "Categorización de Grupos" : "Group Categorization Game"
+        case "chess_grid":
+            return isEs ? "Cuadrícula de la Reina" : "Queen's Grid"
+        default:
+            return gameId
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -85,7 +138,7 @@ struct ShareView: View {
                     Button(action: {
                         viewModel.onFinished?()
                     }) {
-                        Text("Close")
+                        Text(t("close"))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(Color(red: 26/255, green: 115/255, blue: 232/255))
                             .padding(.vertical, 12)
@@ -121,22 +174,22 @@ struct ShareView: View {
         case .parsing:
             VStack(spacing: 12) {
                 ProgressView()
-                Text("Analyzing shared text...")
+                Text(t("analyzing"))
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
             }
             
-        case .loading(let gameName, let scoreText):
+        case .loading(let gameId, let scoreText):
             VStack(spacing: 12) {
                 ProgressView()
                     .padding(.bottom, 8)
-                Text(gameName)
+                Text(translateGameName(gameId))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(red: 15/255, green: 23/255, blue: 42/255))
                 Text(scoreText)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.gray)
-                Text("Saving your score...")
+                Text(t("saving"))
                     .font(.system(size: 13))
                     .foregroundColor(.gray)
             }
@@ -147,7 +200,7 @@ struct ShareView: View {
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 19/255, green: 115/255, blue: 51/255)) // green-700
                     .padding(.bottom, 8)
-                Text("Success!")
+                Text(t("success"))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(red: 15/255, green: 23/255, blue: 42/255))
                 Text(message)
@@ -163,7 +216,7 @@ struct ShareView: View {
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 197/255, green: 34/255, blue: 31/255)) // red-700
                     .padding(.bottom, 8)
-                Text("Submission Failed")
+                Text(t("submission_failed"))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(red: 15/255, green: 23/255, blue: 42/255))
                 Text(message)
@@ -179,10 +232,10 @@ struct ShareView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.orange)
                     .padding(.bottom, 8)
-                Text("Not Logged In")
+                Text(t("not_logged_in"))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(red: 15/255, green: 23/255, blue: 42/255))
-                Text("Please open Puzzlr and log in first to submit your scores.")
+                Text(t("login_instruction"))
                     .font(.system(size: 14))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)
@@ -195,10 +248,10 @@ struct ShareView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.gray)
                     .padding(.bottom, 8)
-                Text("Unknown Score Format")
+                Text(t("unknown_format"))
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(red: 15/255, green: 23/255, blue: 42/255))
-                Text("Could not recognize daily score format in the shared content.")
+                Text(t("format_instruction"))
                     .font(.system(size: 14))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)

@@ -1,15 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './useAuth';
-import { useGroups } from './useGroups';
-import { useDailyScores } from './useDailyScores';
+import type { Group } from './useGroups';
+import type { DailyScore } from './useDailyScores';
 import { Badge } from '@capawesome/capacitor-badge';
 import { Capacitor } from '@capacitor/core';
 
-export const useNotifications = () => {
+export const useNotifications = (groups: Group[], scores: DailyScore[]) => {
   const { user } = useAuth();
-  const { groups } = useGroups();
-  const { scores } = useDailyScores();
 
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const [pendingGames, setPendingGames] = useState<Record<string, number>>({});

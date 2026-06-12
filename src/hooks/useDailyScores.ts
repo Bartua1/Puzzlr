@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './useAuth';
 
@@ -25,10 +25,13 @@ export const useDailyScores = () => {
   const [games, setGames] = useState<GameConfig[]>([]);
   const [scores, setScores] = useState<DailyScore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const activeFetchId = useRef(0);
 
   const fetchGames = async () => {
-    const { data, error } = await supabase.from('games').select('*');
-    if (!error && data) {
+    const { data, error: gamesErr } = await supabase.from('games').select('*');
+    if (gamesErr) throw gamesErr;
+    if (data) {
       setGames(data);
     }
   };
@@ -36,20 +39,54 @@ export const useDailyScores = () => {
   const fetchTodayScores = async () => {
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
+    const { data, error: scoresErr } = await supabase
       .from('daily_scores')
       .select('*')
       .eq('profile_id', user.id)
       .eq('solved_date', today);
 
-    if (!error && data) {
+    if (scoresErr) throw scoresErr;
+    if (data) {
       setScores(data);
     }
   };
 
   const loadData = async () => {
+    if (!user) return;
+
+    const fetchId = ++activeFetchId.current;
+
     setLoading(true);
-    await Promise.all([fetchGames(), fetchTodayScores()]);
+    setError(null);
+
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
+    let lastError: any = null;
+
+    while (attempt <= maxRetries && !success) {
+      if (fetchId !== activeFetchId.current) return;
+      try {
+        await Promise.all([fetchGames(), fetchTodayScores()]);
+        success = true;
+      } catch (err: any) {
+        lastError = err;
+        attempt++;
+        if (attempt <= maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.warn(`[useDailyScores] Load failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${delay}ms...`, err);
+          if (fetchId !== activeFetchId.current) return;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    if (fetchId !== activeFetchId.current) return;
+
+    if (!success) {
+      console.error('[useDailyScores] All load attempts failed:', lastError);
+      setError(lastError);
+    }
     setLoading(false);
   };
 
@@ -58,6 +95,7 @@ export const useDailyScores = () => {
       loadData();
     } else {
       setScores([]);
+      setError(null);
       setLoading(false);
     }
   }, [user]);
@@ -107,7 +145,8 @@ export const useDailyScores = () => {
     games,
     scores,
     loading,
+    error,
     submitScore,
-    refreshScores: fetchTodayScores,
+    refreshScores: loadData,
   };
 };

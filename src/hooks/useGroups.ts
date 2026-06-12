@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './useAuth';
 
@@ -27,35 +27,74 @@ export const useGroups = () => {
   const { user } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const activeFetchId = useRef(0);
 
   const fetchGroups = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from('group_members')
-      .select('group_id, last_read_at, is_muted, groups(*)')
-      .eq('profile_id', user.id);
 
-    if (!error && data) {
-      const parsedGroups = data
-        .map((row: any) => {
-          if (!row.groups) return null;
-          return {
-            ...row.groups,
-            last_read_at: row.last_read_at,
-            is_muted: row.is_muted
-          };
-        })
-        .filter((g) => g !== null) as Group[];
-      setGroups(parsedGroups);
+    const fetchId = ++activeFetchId.current;
+
+    setLoading(true);
+    setError(null);
+
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
+    let lastError: any = null;
+
+    while (attempt <= maxRetries && !success) {
+      if (fetchId !== activeFetchId.current) return;
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from('group_members')
+          .select('group_id, last_read_at, is_muted, groups(*)')
+          .eq('profile_id', user.id);
+
+        if (fetchErr) throw fetchErr;
+
+        if (data) {
+          if (fetchId !== activeFetchId.current) return;
+          const parsedGroups = data
+            .map((row: any) => {
+              if (!row.groups) return null;
+              return {
+                ...row.groups,
+                last_read_at: row.last_read_at,
+                is_muted: row.is_muted
+              };
+            })
+            .filter((g) => g !== null) as Group[];
+          setGroups(parsedGroups);
+          success = true;
+        }
+      } catch (err: any) {
+        lastError = err;
+        attempt++;
+        if (attempt <= maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.warn(`[useGroups] Fetch failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${delay}ms...`, err);
+          if (fetchId !== activeFetchId.current) return;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    if (fetchId !== activeFetchId.current) return;
+
+    if (!success) {
+      console.error('[useGroups] All fetch attempts failed:', lastError);
+      setError(lastError);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
     if (user) {
-      setLoading(true);
-      fetchGroups().finally(() => setLoading(false));
+      fetchGroups();
     } else {
       setGroups([]);
+      setError(null);
       setLoading(false);
     }
   }, [user]);
@@ -250,6 +289,7 @@ export const useGroups = () => {
   return {
     groups,
     loading,
+    error,
     createGroup,
     joinGroup,
     getStandings,

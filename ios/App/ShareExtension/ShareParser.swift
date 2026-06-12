@@ -101,7 +101,7 @@ func matchRegex(pattern: String, text: String) -> [String]? {
     return results.isEmpty ? nil : results
 }
 
-func submitScore(supabaseUrl: String, supabaseAnonKey: String, accessToken: String, score: ParsedScore, rawText: String) async -> Result<String, Error> {
+func submitScore(supabaseUrl: String, supabaseAnonKey: String, accessToken: String, score: ParsedScore, rawText: String, language: String) async -> Result<String, Error> {
     guard let url = URL(string: "\(supabaseUrl)/rest/v1/rpc/submit_daily_score_rpc") else {
         return .failure(NSError(domain: "SupabaseError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid Supabase URL"]))
     }
@@ -144,7 +144,9 @@ func submitScore(supabaseUrl: String, supabaseAnonKey: String, accessToken: Stri
                 
                 if success {
                     if let points = json["points_earned"] as? Int {
-                        return .success("Score saved! Earned \(points) points.")
+                        let isEs = language.lowercased().hasPrefix("es")
+                        let template = isEs ? "¡Puntuación guardada! Has ganado %d puntos." : "Score saved! Earned %d points."
+                        return .success(String(format: template, points))
                     } else {
                         return .success(message)
                     }
@@ -152,13 +154,21 @@ func submitScore(supabaseUrl: String, supabaseAnonKey: String, accessToken: Stri
                     return .failure(NSError(domain: "RPCError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message]))
                 }
             }
-            return .success("Score submitted successfully.")
+            let isEs = language.lowercased().hasPrefix("es")
+            let successMsg = isEs ? "Puntuación enviada con éxito." : "Score submitted successfully."
+            return .success(successMsg)
         } else {
             if let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                let message = json["message"] as? String {
-                return .failure(NSError(domain: "SupabaseError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message]))
+                var displayMessage = message
+                let isEs = language.lowercased().hasPrefix("es")
+                if message.contains("duplicate key value violates unique constraint") || message.contains("unique_user_game_date") {
+                    displayMessage = isEs ? "Ya has enviado una puntuación para este juego hoy." : "You have already submitted a score for this game today."
+                }
+                return .failure(NSError(domain: "SupabaseError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: displayMessage]))
             }
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown server error"
+            let isEs = language.lowercased().hasPrefix("es")
+            let errorMessage = String(data: data, encoding: .utf8) ?? (isEs ? "Error de servidor desconocido" : "Unknown server error")
             return .failure(NSError(domain: "SupabaseError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage]))
         }
     } catch {

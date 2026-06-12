@@ -77,18 +77,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string, userMetadata?: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
+    let lastError: any = null;
+    let profileData: any = null;
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        setProfile(null);
-      } else if (!data) {
-        // Create profile for user
+    while (attempt <= maxRetries && !success) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        profileData = data;
+        success = true;
+      } catch (err: any) {
+        lastError = err;
+        attempt++;
+        if (attempt <= maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.warn(`[useAuth] Fetching profile failed (attempt ${attempt}/${maxRetries + 1}). Retrying in ${delay}ms...`, err);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    if (!success) {
+      console.error('[useAuth] Error fetching profile after all attempts:', lastError);
+      setProfile(null);
+      return;
+    }
+
+    if (!profileData) {
+      // Create profile for user
+      try {
         const email = userMetadata?.email || '';
         const rawUsername = userMetadata?.username || userMetadata?.full_name || userMetadata?.name || email.split('@')[0] || `user_${userId.slice(0, 5)}`;
         const cleanUsername = rawUsername.trim() || `user_${userId.slice(0, 5)}`;
@@ -112,11 +140,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setProfile(newProfile);
         }
-      } else {
-        setProfile(data);
+      } catch (e) {
+        console.error('Exception during profile creation:', e);
+        setProfile(null);
       }
-    } catch (e) {
-      console.error(e);
+    } else {
+      setProfile(profileData);
     }
   };
 
@@ -136,6 +165,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await AppGroupPlugin.set({ key: 'supabase_access_token', value: '' });
           await AppGroupPlugin.set({ key: 'supabase_user_id', value: '' });
         }
+
+        // Keep language synced
+        const lang = profile?.language || getDeviceLanguage();
+        await AppGroupPlugin.set({ key: 'supabase_language', value: lang });
       } catch (err) {
         console.error('Error syncing auth to App Group:', err);
       }
@@ -179,8 +212,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchProfile(session.user.id, session.user.user_metadata);
+          syncAuthToAppGroup(session);
+        } else {
+          syncAuthToAppGroup(null);
         }
-        syncAuthToAppGroup(session);
         setLoading(false);
       })
       .catch((err) => {
@@ -191,14 +226,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id, session.user.user_metadata);
+          syncAuthToAppGroup(session);
         } else {
           setProfile(null);
+          // Only clear credentials if we explicitly log out
+          if (event === 'SIGNED_OUT') {
+            syncAuthToAppGroup(null);
+          }
         }
-        syncAuthToAppGroup(session);
         setLoading(false);
       }
     );
@@ -228,11 +267,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
+    // Listen to app state changes to refresh session when coming back to foreground
+    let appStateListener: { remove: () => void } | null = null;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          console.log('[useAuth] App became active. Refreshing session...');
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              setUser(session.user);
+              await fetchProfile(session.user.id, session.user.user_metadata);
+              syncAuthToAppGroup(session);
+            }
+          } catch (err) {
+            console.error('[useAuth] Error refreshing session on resume:', err);
+          }
+        }
+      }).then(listener => {
+        appStateListener = listener;
+      });
+    }
+
     return () => {
       subscription.unsubscribe();
       appUrlOpenListener?.remove();
+      appStateListener?.remove();
     };
   }, []);
+
+  // Sync language preferences whenever profile changes
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const lang = profile?.language || getDeviceLanguage();
+      AppGroupPlugin.set({ key: 'supabase_language', value: lang }).catch((err: any) => {
+        console.error('Error syncing language to App Group:', err);
+      });
+    }
+  }, [profile]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);

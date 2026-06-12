@@ -9,6 +9,7 @@ import { triggerHapticClick, triggerHapticSuccess, triggerHapticError } from '..
 import { useTranslation } from 'react-i18next';
 import { Clipboard, ShieldAlert, CheckCircle2, Volume2, VolumeX, X, ArrowLeft, Copy, Share2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { Clipboard as CapClipboard } from '@capacitor/clipboard';
 import coinX3 from '../assets/coin_x3.svg';
 import streakHot from '../assets/streak_hot.svg';
@@ -41,10 +42,10 @@ const SUGGESTED_NAMES = [
 ];
 
 export const Dashboard = () => {
-  const { profile } = useAuth();
-  const { scores, submitScore, loading: scoresLoading } = useDailyScores();
-  const { groups, createGroup, joinGroup, loading: groupsLoading, getStandings, getGroupMembers, updateMuteStatus } = useGroups();
-  const { unreadMessages, pendingGames } = useNotifications();
+  const { profile, refreshProfile } = useAuth();
+  const { scores, submitScore, loading: scoresLoading, error: scoresError, refreshScores } = useDailyScores();
+  const { groups, createGroup, joinGroup, loading: groupsLoading, error: groupsError, getStandings, getGroupMembers, updateMuteStatus, refreshGroups } = useGroups();
+  const { unreadMessages, pendingGames } = useNotifications(groups, scores);
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -91,6 +92,27 @@ export const Dashboard = () => {
       if (toastTimeout) clearTimeout(toastTimeout);
     };
   }, [toastTimeout]);
+
+  // Listen to app foreground transition to auto-refresh data
+  useEffect(() => {
+    let appStateListener: { remove: () => void } | null = null;
+    if (Capacitor.isNativePlatform()) {
+      App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          console.log('[Dashboard] App resumed. Refreshing dashboard data...');
+          refreshGroups();
+          refreshScores();
+          refreshProfile();
+        }
+      }).then(listener => {
+        appStateListener = listener;
+      });
+    }
+
+    return () => {
+      appStateListener?.remove();
+    };
+  }, [refreshGroups, refreshScores, refreshProfile]);
   const [frozenDates, setFrozenDates] = useState<string[]>([]);
 
   useEffect(() => {
@@ -1002,6 +1024,28 @@ export const Dashboard = () => {
               <div className="py-12 flex flex-col items-center gap-2">
                 <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
                 <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">{t('dashboard.loadingLeagues')}</p>
+              </div>
+            ) : (groupsError || scoresError) ? (
+              <div className="text-center py-10 bg-rose-50/60 border border-rose-200/50 rounded-[32px] p-6 backdrop-blur-md shadow-sm flex flex-col items-center justify-center space-y-3">
+                <div className="w-12 h-12 bg-rose-100/80 border border-rose-200/50 rounded-full flex items-center justify-center shadow-inner">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-extrabold text-rose-800 tracking-tight">{t('groups.loadErrorTitle', 'Failed to Load Leagues')}</h3>
+                  <p className="text-xs text-rose-600 font-medium max-w-[220px] mx-auto leading-relaxed">
+                    {t('groups.loadErrorDesc', 'There was an issue fetching your leagues. Please check your connection.')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    triggerHapticClick();
+                    refreshGroups();
+                    refreshScores();
+                  }}
+                  className="mt-1 px-4 py-2 bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-700 text-xs font-bold rounded-full transition-colors shadow-sm"
+                >
+                  {t('groups.retry', 'Retry')}
+                </button>
               </div>
             ) : groups.length === 0 ? (
               <div className="text-center py-12 bg-white/70 border border-slate-200/60 rounded-[32px] p-8 backdrop-blur-md shadow-sm flex flex-col items-center justify-center space-y-3">
