@@ -2,16 +2,25 @@ import UIKit
 import Social
 import UniformTypeIdentifiers
 import MobileCoreServices
+import SwiftUI
 
 class ShareViewController: UIViewController {
     let APP_GROUP_ID = "group.com.gonzalo.puzzlr"
-    let APP_URL_SCHEME = "com.gonzalo.puzzlr"
     
-    private var texts: [[String: Any]] = []
+    private let viewModel = ShareViewModel()
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         
+        // 1. Setup SwiftUI Hosting View
+        setupSwiftUIView()
+        
+        // 2. Setup ViewModel callback
+        viewModel.onFinished = { [weak self] in
+            self?.exit()
+        }
+        
+        // 3. Load attachments
         guard let extensionItem = extensionContext?.inputItems.first as? NSExtensionItem,
               let attachments = extensionItem.attachments else {
             self.exit()
@@ -19,78 +28,52 @@ class ShareViewController: UIViewController {
         }
 
         Task {
+            var sharedText: String? = nil
+            
             for provider in attachments {
-                // Check if the shared content is plain text
                 if provider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
                     if let text = try? await provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) as? String {
-                        self.texts.append([
-                            "value": text,
-                            "text": text,
-                            "type": "text/plain"
-                        ])
+                        sharedText = text
+                        break
                     }
-                }
-                // Check if the shared content is a URL
-                else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                     if let url = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) as? URL {
-                        self.texts.append([
-                            "value": url.absoluteString,
-                            "text": url.absoluteString,
-                            "type": "text/plain"
-                        ])
+                        sharedText = url.absoluteString
+                        break
                     }
                 }
             }
-
-            // Save the data to Shared UserDefaults
-            let shareData: [String: Any] = [
-                "title": extensionItem.attributedTitle?.string ?? "",
-                "texts": self.texts,
-                "files": []
-            ]
             
-            let userDefaults = UserDefaults(suiteName: APP_GROUP_ID)
-            userDefaults?.set(shareData, forKey: "share-target-data")
-            userDefaults?.synchronize()
-
-            // Redirect and launch your main app
-            if let url = URL(string: "\(APP_URL_SCHEME)://share") {
-                self.openURL(url)
+            guard let textToProcess = sharedText else {
+                await MainActor.run {
+                    viewModel.state = .notParsed
+                }
+                return
             }
-            
-            // Allow the system a moment to process the URL scheme launch before terminating the extension
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
             
             await MainActor.run {
-                self.exit()
+                viewModel.processSharedText(textToProcess)
             }
         }
     }
 
-    private func openURL(_ url: URL) {
-        // 1. Try using the responder chain to find UIApplication
-        var responder: UIResponder? = self
-        while responder != nil {
-            if let application = responder as? UIApplication {
-                application.perform(Selector(("openURL:")), with: url)
-                return
-            }
-            responder = responder?.next
-        }
+    private func setupSwiftUIView() {
+        let hostingController = UIHostingController(rootView: ShareView(viewModel: viewModel))
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
         
-        // 2. Try calling the private selector openURL:completionHandler: on NSExtensionContext
-        let contextSelector = Selector(("openURL:completionHandler:"))
-        if let context = self.extensionContext, context.responds(to: contextSelector) {
-            context.perform(contextSelector, with: url, with: nil)
-            return
-        }
-
-        // 3. Fallback to openURL: on NSExtensionContext
-        let contextSelectorLegacy = Selector(("openURL:"))
-        if let context = self.extensionContext, context.responds(to: contextSelectorLegacy) {
-            context.perform(contextSelectorLegacy, with: url)
-            return
-        }
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        
+        hostingController.didMove(toParent: self)
+        
+        // Make hosting view background transparent
+        hostingController.view.backgroundColor = .clear
     }
 
     private func exit() {

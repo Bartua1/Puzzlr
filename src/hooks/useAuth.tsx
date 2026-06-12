@@ -2,10 +2,12 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getDeviceLanguage } from '../i18n';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { SocialLogin } from '@capgo/capacitor-social-login'; // Import Native Social Login
+
+const AppGroupPlugin = registerPlugin<any>('AppGroupPlugin');
 
 // Retrieve the matching Client IDs from your environment variables
 const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "";
@@ -118,6 +120,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const syncAuthToAppGroup = async (session: any) => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+        await AppGroupPlugin.set({ key: 'supabase_url', value: supabaseUrl });
+        await AppGroupPlugin.set({ key: 'supabase_anon_key', value: supabaseAnonKey });
+
+        if (session) {
+          await AppGroupPlugin.set({ key: 'supabase_access_token', value: session.access_token });
+          await AppGroupPlugin.set({ key: 'supabase_user_id', value: session.user.id });
+        } else {
+          await AppGroupPlugin.set({ key: 'supabase_access_token', value: '' });
+          await AppGroupPlugin.set({ key: 'supabase_user_id', value: '' });
+        }
+      } catch (err) {
+        console.error('Error syncing auth to App Group:', err);
+      }
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user.id, user.user_metadata);
@@ -156,6 +180,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           fetchProfile(session.user.id, session.user.user_metadata);
         }
+        syncAuthToAppGroup(session);
         setLoading(false);
       })
       .catch((err) => {
@@ -173,6 +198,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setProfile(null);
         }
+        syncAuthToAppGroup(session);
         setLoading(false);
       }
     );
