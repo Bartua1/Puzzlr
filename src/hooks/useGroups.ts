@@ -10,6 +10,7 @@ export interface Group {
   created_at: string;
   image_url?: string;
   invite_code_expires_at?: string;
+  last_read_at?: string;
 }
 
 export interface Standing {
@@ -30,12 +31,18 @@ export const useGroups = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('group_members')
-      .select('group_id, groups(*)')
+      .select('group_id, last_read_at, groups(*)')
       .eq('profile_id', user.id);
 
     if (!error && data) {
       const parsedGroups = data
-        .map((row: any) => row.groups)
+        .map((row: any) => {
+          if (!row.groups) return null;
+          return {
+            ...row.groups,
+            last_read_at: row.last_read_at
+          };
+        })
         .filter((g) => g !== null) as Group[];
       setGroups(parsedGroups);
     }

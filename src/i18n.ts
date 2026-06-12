@@ -107,6 +107,12 @@ const resources = {
           title: "Submit Daily Score",
           subtitle: "Paste your copy-paste puzzle results",
         },
+        clipboardModal: {
+          title: "Score Detected",
+          prompt: "We found a score for {{gameName}} in your clipboard. Do you want to submit it to your leagues?",
+          submitBtn: "Yes, Submit",
+          ignoreBtn: "No, Ignore",
+        },
         streakIncreased: "Streak Increased! 🔥",
         errors: {
           joinFailed: "Failed to join league",
@@ -171,6 +177,12 @@ const resources = {
         clearAllSubmissions: "Clear All Submissions",
         noSubmissions: "No daily submissions found",
         submissionDeleted: "Submission deleted successfully!",
+        pbsTitle: "Personal Bests",
+        pbsSubtitle: "Your all-time records",
+        noPbs: "No personal bests recorded yet",
+        pbsGroupsLabel: "Leagues",
+        pbsGroupsNone: "None",
+        pbsDate: "on {{date}}",
       },
       groupDetails: {
         backBtn: "Back to dashboard",
@@ -331,6 +343,12 @@ const resources = {
           title: "Enviar Puntuación Diaria",
           subtitle: "Pega los resultados copiados de tu rompecabezas",
         },
+        clipboardModal: {
+          title: "Puntuación Detectada",
+          prompt: "Hemos detectado una puntuación de {{gameName}} en tu portapapeles. ¿Te gustaría enviarla a tus ligas?",
+          submitBtn: "Sí, enviar",
+          ignoreBtn: "No, ignorar",
+        },
         streakIncreased: "¡Tu racha ha aumentado! 🔥",
         errors: {
           joinFailed: "Error al unirse a la liga",
@@ -395,6 +413,12 @@ const resources = {
         clearAllSubmissions: "Eliminar Todas las Puntuaciones",
         noSubmissions: "No se encontraron puntuaciones diarias",
         submissionDeleted: "¡Puntuación eliminada con éxito!",
+        pbsTitle: "Récords Personales",
+        pbsSubtitle: "Tus mejores marcas históricas",
+        noPbs: "Aún no tienes récords guardados",
+        pbsGroupsLabel: "Ligas",
+        pbsGroupsNone: "Ninguna",
+        pbsDate: "el {{date}}",
       },
       groupDetails: {
         backBtn: "Volver al panel",

@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   History,
   Settings as SettingsIcon,
-  Plus,
   Send,
   Clock,
   CheckCircle2,
@@ -23,6 +22,7 @@ import {
 import coinX3 from '../assets/coin_x3.svg';
 import { Browser } from '@capacitor/browser';
 import { AvatarViewer } from '../components/AvatarViewer';
+import { GameCardView } from '../components/GameCardView';
 
 interface GroupDetails {
   id: string;
@@ -93,11 +93,113 @@ const GAME_PLAY_URLS: Record<string, string> = {
   wordle_es: 'https://lapalabradeldia.com/',
 };
 
+const getGameCategoryTag = (gameId: string) => {
+  if (gameId === 'wordle_es' || gameId === 'la_palabra') return 'ESPAÑOL';
+  if (gameId === 'word_grid') return 'ENGLISH';
+  if (gameId === 'chess_grid' || gameId === 'linkedin_ques') return 'CHESS';
+  if (gameId === 'word_group') return 'GROUPS';
+  if (gameId === 'crossword' || gameId === 'mini') return 'CROSSWORD';
+  if (gameId === 'spelling_bee') return 'LETTERS';
+  if (gameId === 'strands') return 'STRANDS';
+  if (gameId === 'pinpoint') return 'ASSOCIATION';
+  if (gameId === 'tango' || gameId === 'zip') return 'LOGIC';
+  return 'DAILY';
+};
+
+const renderGamePreviewIcon = (gameId: string, randomGrid?: string[][]) => {
+  if (gameId === 'word_grid' || gameId === 'wordle_es' || gameId === 'la_palabra') {
+    const grid = randomGrid || [
+      ['bg-slate-200', 'bg-slate-200', 'bg-slate-200', 'bg-emerald-500', 'bg-amber-400'],
+      ['bg-slate-200', 'bg-slate-200', 'bg-slate-200', 'bg-slate-200', 'bg-slate-200'],
+      ['bg-slate-200', 'bg-emerald-500', 'bg-amber-400', 'bg-emerald-500', 'bg-emerald-500'],
+      ['bg-emerald-500', 'bg-emerald-500', 'bg-emerald-500', 'bg-emerald-500', 'bg-emerald-500']
+    ];
+    return (
+      <div className="grid grid-cols-5 gap-1.5 w-24 h-20 justify-center items-center flex-shrink-0">
+        {grid.map((row, rIdx) =>
+          row.map((color, cIdx) => (
+            <div key={`${rIdx}-${cIdx}`} className={`w-3.5 h-3.5 rounded-[3px] ${color}`}></div>
+          ))
+        )}
+      </div>
+    );
+  }
+  if (gameId === 'chess_grid') {
+    return (
+      <div className="grid grid-cols-4 gap-1.5 w-24 h-20 justify-center items-center flex-shrink-0">
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px] flex items-center justify-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-purple-800">
+            <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
+          </svg>
+        </div>
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
+        
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
+        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+      </div>
+    );
+  }
+  if (gameId === 'word_group') {
+    return (
+      <div className="flex flex-col gap-1.5 w-24 h-20 justify-center flex-shrink-0">
+        <div className="h-3 bg-amber-100 border border-amber-200 rounded-[3px]"></div>
+        <div className="h-3 bg-emerald-100 border border-emerald-200 rounded-[3px]"></div>
+        <div className="h-3 bg-sky-100 border border-sky-200 rounded-[3px]"></div>
+        <div className="h-3 bg-purple-100 border border-purple-200 rounded-[3px]"></div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const generateRandomWordleGrid = () => {
+  const grid: string[][] = [];
+  
+  // Generate first 3 rows randomly
+  for (let r = 0; r < 3; r++) {
+    const row: string[] = [];
+    for (let c = 0; c < 5; c++) {
+      const rand = Math.random();
+      if (rand < 0.6) {
+        row.push('bg-slate-200');
+      } else if (rand < 0.85) {
+        row.push('bg-amber-400');
+      } else {
+        row.push('bg-emerald-500');
+      }
+    }
+    grid.push(row);
+  }
+  
+  // Last row is always all green
+  grid.push(Array(5).fill('bg-emerald-500'));
+  
+  return grid;
+};
+
 export const GroupDetails = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Memoized random grids for wordle-type games to prevent re-randomizing on every render
+  const randomGrids = React.useMemo<Record<string, string[][]>>(() => {
+    return {
+      word_grid: generateRandomWordleGrid(),
+      wordle_es: generateRandomWordleGrid(),
+      la_palabra: generateRandomWordleGrid(),
+    };
+  }, []);
 
   const handlePlayGame = async (gameId: string) => {
     await triggerHapticClick();
@@ -125,12 +227,31 @@ export const GroupDetails = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Ticking state for per-game countdown clocks
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const updateLastRead = async () => {
+    if (!user || !groupId) return;
+    try {
+      await supabase
+        .from('group_members')
+        .update({ last_read_at: new Date().toISOString() })
+        .eq('group_id', groupId)
+        .eq('profile_id', user.id);
+    } catch (e) {
+      console.error('Failed to update last_read_at:', e);
+    }
+  };
+
+  // Update last read when entering group or group changes
+  useEffect(() => {
+    if (user && groupId) {
+      updateLastRead();
+    }
+  }, [user, groupId]);
 
   // Compute countdown string for a game's daily reset time (UTC)
   const getCountdownTo = (resetTimeStr: string) => {
@@ -234,20 +355,27 @@ export const GroupDetails = () => {
 
       // 6. Today's scores for this group members
       const todayStr = new Date().toISOString().split('T')[0];
+      const memberIds = membersData?.map((m: any) => m.profile_id) || [];
       const { data: scoresData } = await supabase
         .from('daily_scores')
         .select('id, profile_id, game_id, score, max_score, raw_text, solved_date, profiles(id, username, avatar_url, equipped_character_id, equipped_badge_id)')
-        .eq('solved_date', todayStr);
+        .eq('solved_date', todayStr)
+        .in('profile_id', memberIds);
 
       if (scoresData) {
         setTodayScores(scoresData as any);
       }
 
-      // 7. Chat messages
+      // 7. Chat messages (only from the current UTC day)
+      const startOfToday = `${todayStr}T00:00:00.000Z`;
+      const endOfToday = `${todayStr}T23:59:59.999Z`;
+
       const { data: chatData } = await supabase
         .from('group_messages')
         .select('id, group_id, profile_id, message_type, content, created_at, profiles(id, username, avatar_url, equipped_character_id, equipped_badge_id)')
         .eq('group_id', groupId)
+        .gte('created_at', startOfToday)
+        .lte('created_at', endOfToday)
         .order('created_at', { ascending: true })
         .limit(100);
 
@@ -277,19 +405,28 @@ export const GroupDetails = () => {
         table: 'group_messages',
         filter: `group_id=eq.${groupId}`
       }, async (payload) => {
-        // Fetch profile info for the new message
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url, equipped_character_id, equipped_badge_id')
-          .eq('id', payload.new.profile_id)
-          .maybeSingle();
+        // Only append the message if it was sent on the current UTC day
+        const msgDateStr = payload.new.created_at
+          ? new Date(payload.new.created_at).toISOString().split('T')[0]
+          : '';
+        const currentTodayStr = new Date().toISOString().split('T')[0];
 
-        const fullMessage: ChatMessage = {
-          ...(payload.new as any),
-          profiles: profileData
-        };
+        if (msgDateStr === currentTodayStr) {
+          // Fetch profile info for the new message
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, equipped_character_id, equipped_badge_id')
+            .eq('id', payload.new.profile_id)
+            .maybeSingle();
 
-        setChatMessages(prev => [...prev, fullMessage]);
+          const fullMessage: ChatMessage = {
+            ...(payload.new as any),
+            profiles: profileData
+          };
+
+          setChatMessages(prev => [...prev, fullMessage]);
+          updateLastRead();
+        }
       })
       .subscribe();
 
@@ -342,15 +479,9 @@ export const GroupDetails = () => {
   // Total gems gained in this season by the logged-in user
   const getUserGemsThisSeason = () => {
     if (!season || !profile) return 0;
-    // We can count points from daily scores of this user solved between season start_date and end_date
+    // Today they get exactly 15 gems/points per played minigame instantly
     const userScores = todayScores.filter(s => s.profile_id === profile.id);
-    // As a simplification we can fetch or use profiles.lifetime_points or compute points.
-    // Let's search group_season_points for this group/season
-    return userScores.reduce((acc, curr) => {
-      const base = 10;
-      const bonus = curr.max_score > 0 ? Math.floor((curr.score / curr.max_score) * 10) : 0;
-      return acc + base + bonus;
-    }, 0);
+    return userScores.length * 15;
   };
 
   // Helper: resolve cosmetic asset_key from a cosmetic UUID
@@ -359,39 +490,7 @@ export const GroupDetails = () => {
     return cosmetics.find(c => c.id === cosmeticId)?.asset_key || '';
   };
 
-  // Generic game display names for system message rendering (no trademarks)
-  const GAME_DISPLAY_NAMES: Record<string, string> = {
-    word_grid: 'Daily Word Grid',
-    la_palabra: 'Daily Word Grid',
-    wordle_es: 'Daily Word Grid',
-    chess_grid: "Queen's Grid",
-    linkedin_ques: "Queen's Grid",
-    word_group: 'Group Categorization Game',
-  };
 
-  // Render a system message: try to parse JSON, fall back to raw text
-  const renderSystemMessage = (msg: ChatMessage) => {
-    let parsed: any = null;
-    try { parsed = JSON.parse(msg.content); } catch { /* not JSON */ }
-
-    if (parsed && parsed.type) {
-      const gameName = GAME_DISPLAY_NAMES[parsed.gameId] || parsed.gameId || 'a game';
-      switch (parsed.type) {
-        case 'completed_word_grid':
-          return t('systemMessages.completed_word_grid', { gameName, guesses: parsed.guesses });
-        case 'completed_chess_grid':
-          return t('systemMessages.completed_chess_grid', { gameName, time: parsed.time });
-        case 'completed_chess_grid_no_time':
-          return t('systemMessages.completed_chess_grid_no_time', { gameName });
-        case 'completed_word_group':
-          return t('systemMessages.completed_word_group', { gameName, score: parsed.score, max: parsed.max });
-        default:
-          break;
-      }
-    }
-    // Fall back to raw string
-    return msg.content;
-  };
 
   // Profile characters/avatars of users who participated in TODAY'S games
   const getTodayParticipants = () => {
@@ -439,6 +538,8 @@ export const GroupDetails = () => {
     if (error) {
       await triggerHapticError();
       console.error(error);
+    } else {
+      updateLastRead();
     }
   };
 
@@ -462,9 +563,16 @@ export const GroupDetails = () => {
   // Points calculation helper (Formula: Ending up last = 5 coins, ties lower points)
   // ----------------------------------------------------
   const calculateCoinsForGame = (gameId: string) => {
-    // 1. Get scores for this specific game
+    const isSameGameCategory = (scoreGameId: string, targetGameId: string) => {
+      if (scoreGameId === targetGameId) return true;
+      const wordleIds = ['word_grid', 'wordle_es', 'la_palabra'];
+      if (wordleIds.includes(scoreGameId) && wordleIds.includes(targetGameId)) return true;
+      return false;
+    };
+
+    // 1. Get scores for this specific game category
     const gameScores = todayScores
-      .filter(s => s.game_id === gameId)
+      .filter(s => isSameGameCategory(s.game_id, gameId))
       .map(s => ({
         profile_id: s.profile_id,
         username: s.profiles.username,
@@ -477,20 +585,19 @@ export const GroupDetails = () => {
 
     if (gameScores.length === 0) return [];
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Sort unique scores descending by score (higher score is better)
+    const sortedScores = [...gameScores].sort((a, b) => b.score - a.score);
 
-    // 2. Sort scores ascending (lowest score is index 0)
-    gameScores.sort((a, b) => a.score - b.score);
-
-    // 3. Extract unique scores sorted ascending
-    const uniqueScores = Array.from(new Set(gameScores.map(gs => gs.score))).sort((a, b) => a - b);
-
-    // 4. Map each score to its coin allocation based on its rank among unique scores
+    // 4. Map each score to its coin allocation based on its rank
     return gameScores.map(gs => {
-      // Standings points should be 0 until the next day where we calculate standings out of all people who played
-      const gsDateStr = gs.solved_date ? gs.solved_date.split('T')[0] : '';
-      const isToday = gsDateStr === todayStr;
-      const coinsGained = isToday ? 0 : (uniqueScores.indexOf(gs.score) + 1) * 5;
+      let coinsGained = 15; // 15 instantly for playing
+      
+      // Position points: 5 * (total - position + 1)
+      const userScore = gs.score;
+      const higherCount = sortedScores.filter(s => s.score > userScore).length;
+      const position = higherCount + 1;
+      coinsGained += 5 * (sortedScores.length - position + 1);
+
       return {
         ...gs,
         coins: coinsGained
@@ -533,6 +640,44 @@ export const GroupDetails = () => {
 
   const globalTodayStandings = getGlobalTodayStandings();
   const bestPlayer = globalTodayStandings[0];
+
+  const getPlayerRank = (index: number) => {
+    if (index >= globalTodayStandings.length) return 0;
+    const playerCoins = globalTodayStandings[index].coins;
+    const higherCount = globalTodayStandings.filter(s => s.coins > playerCoins).length;
+    return higherCount + 1;
+  };
+
+  const getPodiumStyle = (rank: number) => {
+    if (rank === 1) {
+      return {
+        medal: '🥇',
+        crown: true,
+        pedestalClass: 'w-14 h-12 bg-amber-300/60 rounded-t-lg flex items-center justify-center',
+        medalClass: 'text-sm font-black text-amber-700',
+        mbClass: '',
+        avatarSize: 'md' as const
+      };
+    } else if (rank === 2) {
+      return {
+        medal: '🥈',
+        crown: false,
+        pedestalClass: 'w-14 h-8 bg-slate-200/70 rounded-t-lg flex items-center justify-center',
+        medalClass: 'text-xs font-black text-slate-500',
+        mbClass: 'mb-1',
+        avatarSize: 'md' as const
+      };
+    } else {
+      return {
+        medal: '🥉',
+        crown: false,
+        pedestalClass: 'w-14 h-6 bg-orange-200/60 rounded-t-lg flex items-center justify-center',
+        medalClass: 'text-xs font-black text-orange-650',
+        mbClass: 'mb-2',
+        avatarSize: 'sm' as const
+      };
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-violet-100 via-indigo-50 to-emerald-50 text-slate-800 pt-safe font-sans">
@@ -680,78 +825,63 @@ export const GroupDetails = () => {
 
         {/* 3. GAMES GRID */}
         <section className="space-y-3">
-          {/* Icon-only add button pinned top-right */}
-          <div className="flex justify-end">
-            <button
-              onClick={async () => {
-                await triggerHapticClick();
-                navigate(`/group/${groupId}/manage-games`);
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/60 border border-slate-200/60 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 shadow-sm active:scale-90 transition-all"
-              title={t('groupDetails.addGame')}
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="divide-y divide-slate-200/50">
+          <div className="space-y-4">
             {allGames.filter(g => activeGameIds.includes(g.id)).map(game => {
               const gameResultCoins = calculateCoinsForGame(game.id);
               const playedTodayCount = gameResultCoins.length;
               const hasPlayed = todayScores.some(s => s.game_id === game.id && s.profile_id === profile?.id);
-              const userScoreObj = todayScores.find(s => s.game_id === game.id && s.profile_id === profile?.id);
 
               return (
                 <div
                   key={game.id}
-                  className="py-4 space-y-3.5 relative transition-all"
+                  className="bg-white/90 backdrop-blur-md rounded-[28px] p-4 shadow-sm flex flex-col gap-3 hover:shadow-md hover:scale-[1.01] transition-all duration-300 animate-fade-in max-w-[320px] mx-auto w-full"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[9px] font-black uppercase text-indigo-600 tracking-wider">
-                        {game.id === 'word_grid' || game.id === 'wordle_es' || game.id === 'la_palabra' ? 'Daily Word Grid' : game.id === 'chess_grid' ? "Queen's Grid" : 'Group Categorization'}
-                      </span>
-                      <h4 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
-                        {game.id === 'wordle_es' || game.id === 'la_palabra' ? 'La Palabra del Día' : game.display_name}
-                      </h4>
-                    </div>
+                  {/* Top Row: Preview Icon & Closes-In Timer */}
+                  <div className="flex justify-between items-center">
+                    {renderGamePreviewIcon(game.id, randomGrids[game.id])}
 
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] font-extrabold text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                        {getGameCategoryTag(game.id)}
+                      </span>
+                      <span className="text-[10px] font-black text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                         {getCountdownTo(game.reset_time_utc)}
                       </span>
-                      {hasPlayed && userScoreObj && (
-                        <span className="text-[10px] bg-emerald-50 text-emerald-700 font-black px-2.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          {userScoreObj.score} Pts
-                        </span>
-                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1">
+                  {/* Bottom Row: Played Count Stats & Minimal Flat Action Icon */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+                    {/* Flat X/Y People text */}
                     <button
                       onClick={async () => {
                         await triggerHapticClick();
                         setShowPlayedModal({ gameId: game.id, gameName: game.id === 'wordle_es' || game.id === 'la_palabra' ? 'La Palabra del Día' : game.display_name });
                       }}
-                      className="text-xs text-slate-500 font-black hover:text-indigo-650 active:scale-95 transition-transform flex items-center gap-1 hover:bg-white/40 px-2.5 py-1 rounded-full"
+                      className="text-xs text-slate-500 font-extrabold hover:text-indigo-600 active:scale-95 transition-all flex items-center gap-1.5 hover:bg-slate-50 px-2.5 py-0.5 rounded-lg"
                     >
-                      <Users className="w-3.5 h-3.5" />
-                      {t('groupDetails.playedStats', { played: playedTodayCount, total: members.length })}
+                      <span>{playedTodayCount}/{members.length}</span>
+                      <Users className="w-3.5 h-3.5 text-slate-400" />
                     </button>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400 italic mr-1">
-                        {hasPlayed ? t('groupDetails.completed') : t('groupDetails.notCompleted')}
-                      </span>
-                      <button
-                        onClick={() => handlePlayGame(game.id)}
-                        className="text-xs font-black bg-sky-50 text-sky-700 hover:bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-100 transition-all active:scale-95 cursor-pointer"
-                      >
-                        {t('dashboard.openGame', 'Play Game')}
-                      </button>
+                    {/* Flat Action Icon */}
+                    <div>
+                      {hasPlayed ? (
+                        <div className="text-emerald-600 flex items-center justify-center p-1" title={t('groupDetails.completed')}>
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handlePlayGame(game.id)}
+                          className="w-8 h-8 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-600 flex items-center justify-center hover:scale-110 active:scale-90 transition-all cursor-pointer shadow-sm border border-sky-100/50"
+                          title={t('dashboard.openGame', 'Play Game')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-sky-600 ml-0.5">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -779,101 +909,76 @@ export const GroupDetails = () => {
             {/* Trophy podium: 2nd | 1st | 3rd centered, different heights */}
             <div className="flex justify-center items-end gap-4">
 
-              {/* 2nd place */}
-              {globalTodayStandings[1] && globalTodayStandings[1].coins > 0 ? (
-                <div className="flex flex-col items-center gap-1 mb-1">
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <AvatarViewer
-                      characterKey={getCosmeticKey(globalTodayStandings[1].equipped_character_id)}
-                      badgeKey={getCosmeticKey(globalTodayStandings[1].equipped_badge_id)}
-                      size="md"
-                    />
+              {/* 2nd place (rendered on the left, which is index 1) */}
+              {globalTodayStandings[1] && globalTodayStandings[1].coins > 0 ? (() => {
+                const rank = getPlayerRank(1);
+                const style = getPodiumStyle(rank);
+                return (
+                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
+                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
+                    <div className="w-12 h-12 flex items-center justify-center">
+                      <AvatarViewer
+                        characterKey={getCosmeticKey(globalTodayStandings[1].equipped_character_id)}
+                        badgeKey={getCosmeticKey(globalTodayStandings[1].equipped_badge_id)}
+                        size={style.avatarSize}
+                      />
+                    </div>
+                    <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[1].username}</span>
+                    <div className={style.pedestalClass}>
+                      <span className={style.medalClass}>{style.medal}</span>
+                    </div>
                   </div>
-                  <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[1].username}</span>
-                  <div className="w-14 h-8 bg-slate-200/70 rounded-t-lg flex items-center justify-center">
-                    <span className="text-xs font-black text-slate-500">🥈</span>
-                  </div>
-                </div>
-              ) : <div className="w-14" />}
+                );
+              })() : <div className="w-14" />}
 
-              {/* 1st place */}
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xl select-none animate-bounce">👑</span>
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <AvatarViewer
-                    characterKey={getCosmeticKey(bestPlayer.equipped_character_id)}
-                    badgeKey={getCosmeticKey(bestPlayer.equipped_badge_id)}
-                    size="md"
-                  />
-                </div>
-                <span className="text-[10px] font-black text-slate-800 truncate max-w-[64px] text-center">{bestPlayer.username}</span>
-                <div className="w-14 h-12 bg-amber-300/60 rounded-t-lg flex items-center justify-center">
-                  <span className="text-sm font-black text-amber-700">🥇</span>
-                </div>
-              </div>
+              {/* 1st place (rendered in the center, which is index 0) */}
+              {(() => {
+                const rank = getPlayerRank(0);
+                const style = getPodiumStyle(rank);
+                return (
+                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
+                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
+                    <div className="w-12 h-12 flex items-center justify-center">
+                      <AvatarViewer
+                        characterKey={getCosmeticKey(bestPlayer.equipped_character_id)}
+                        badgeKey={getCosmeticKey(bestPlayer.equipped_badge_id)}
+                        size={style.avatarSize}
+                      />
+                    </div>
+                    <span className="text-[10px] font-black text-slate-800 truncate max-w-[64px] text-center">{bestPlayer.username}</span>
+                    <div className={style.pedestalClass}>
+                      <span className={style.medalClass}>{style.medal}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
-              {/* 3rd place */}
-              {globalTodayStandings[2] && globalTodayStandings[2].coins > 0 ? (
-                <div className="flex flex-col items-center gap-1 mb-2">
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    <AvatarViewer
-                      characterKey={getCosmeticKey(globalTodayStandings[2].equipped_character_id)}
-                      badgeKey={getCosmeticKey(globalTodayStandings[2].equipped_badge_id)}
-                      size="sm"
-                    />
+              {/* 3rd place (rendered on the right, which is index 2) */}
+              {globalTodayStandings[2] && globalTodayStandings[2].coins > 0 ? (() => {
+                const rank = getPlayerRank(2);
+                const style = getPodiumStyle(rank);
+                return (
+                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
+                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      <AvatarViewer
+                        characterKey={getCosmeticKey(globalTodayStandings[2].equipped_character_id)}
+                        badgeKey={getCosmeticKey(globalTodayStandings[2].equipped_badge_id)}
+                        size={style.avatarSize}
+                      />
+                    </div>
+                    <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[2].username}</span>
+                    <div className={style.pedestalClass}>
+                      <span className={style.medalClass}>{style.medal}</span>
+                    </div>
                   </div>
-                  <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[2].username}</span>
-                  <div className="w-14 h-6 bg-orange-200/60 rounded-t-lg flex items-center justify-center">
-                    <span className="text-xs font-black text-orange-600">🥉</span>
-                  </div>
-                </div>
-              ) : <div className="w-14" />}
+                );
+              })() : <div className="w-14" />}
 
             </div>
           </section>
         )}
 
-        {/* 5. COMPACT LEADERBOARD — no label, centered rows with medal */}
-        <section className="space-y-1">
-          {globalTodayStandings.map((userSt, i) => {
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
-            const isMe = userSt.profile_id === profile?.id;
-            return (
-              <div
-                key={userSt.profile_id}
-                className={`flex items-center gap-3 px-3 py-2 rounded-2xl transition-colors ${isMe ? 'bg-indigo-50/60' : 'hover:bg-white/30'
-                  }`}
-              >
-                {/* Rank */}
-                <span className="w-6 text-center flex-shrink-0">
-                  {medal
-                    ? <span className="text-base leading-none">{medal}</span>
-                    : <span className="text-[10px] font-black text-slate-400">#{i + 1}</span>
-                  }
-                </span>
-                {/* Avatar */}
-                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                  <AvatarViewer
-                    characterKey={getCosmeticKey(userSt.equipped_character_id)}
-                    badgeKey={getCosmeticKey(userSt.equipped_badge_id)}
-                    size="xs"
-                  />
-                </div>
-                {/* Name */}
-                <span className={`flex-1 text-xs font-bold truncate ${isMe ? 'text-indigo-700' : 'text-slate-800'
-                  }`}>
-                  {userSt.username}{isMe && <span className="text-indigo-400 font-black"> · {t('dashboard.you')}</span>}
-                </span>
-                {/* Points */}
-                <span className="text-[11px] font-black text-slate-500">{userSt.coins} pts</span>
-              </div>
-            );
-          })}
-
-          {globalTodayStandings.length === 0 && (
-            <p className="text-center text-xs text-slate-400 py-4">{t('dashboard.noScoresSubmitted')}</p>
-          )}
-        </section>
 
         {/* 6. DAILY GLOBAL LEAGUE CHAT — seamless, no label */}
         <section className="space-y-0 pt-2">
@@ -883,11 +988,27 @@ export const GroupDetails = () => {
             {chatMessages.map((msg) => {
               const isSelf = msg.profile_id === profile?.id;
 
+              let parsedSystemMsg: any = null;
               if (msg.message_type === 'system') {
+                try {
+                  parsedSystemMsg = JSON.parse(msg.content);
+                } catch (e) {
+                  // Not JSON
+                }
+              }
+
+              const isGameSystemMsg = parsedSystemMsg && (
+                parsedSystemMsg.type === 'completed_word_grid' ||
+                parsedSystemMsg.type === 'completed_chess_grid' ||
+                parsedSystemMsg.type === 'completed_chess_grid_no_time' ||
+                parsedSystemMsg.type === 'completed_word_group'
+              );
+
+              if (msg.message_type === 'system' && !isGameSystemMsg) {
                 return (
-                  <div key={msg.id} className="flex justify-center text-center">
+                  <div key={msg.id} className="flex justify-center text-center my-1 w-full">
                     <span className="text-[10px] bg-white/60 text-slate-650 font-bold px-3 py-1.5 rounded-full border border-slate-200/50 max-w-[90%]">
-                      <span className="text-slate-700 font-extrabold">{msg.profiles?.username || 'User'}</span>{' '}{renderSystemMessage(msg)}
+                      <span className="text-slate-700 font-extrabold">{msg.profiles?.username || 'User'}</span>{' '}{msg.content}
                     </span>
                   </div>
                 );
@@ -895,7 +1016,7 @@ export const GroupDetails = () => {
 
               return (
                 <div key={msg.id} className={`flex gap-2.5 max-w-[85%] ${isSelf ? 'ml-auto flex-row-reverse' : ''}`}>
-                  <div className="w-6 h-6 flex-shrink-0 mt-4">
+                  <div className="w-6 h-6 flex-shrink-0 mt-2">
                     <AvatarViewer
                       characterKey={getCosmeticKey(msg.profiles?.equipped_character_id)}
                       badgeKey={getCosmeticKey(msg.profiles?.equipped_badge_id)}
@@ -909,12 +1030,20 @@ export const GroupDetails = () => {
                         {msg.profiles?.username || 'User'}
                       </span>
                     )}
-                    <div className={`p-3 rounded-2xl text-xs font-semibold shadow-sm border ${isSelf
-                      ? 'bg-indigo-600 text-white border-indigo-700 rounded-tr-none'
-                      : 'bg-white/70 text-slate-800 border-slate-100 rounded-tl-none'
-                      }`}>
-                      {msg.content}
-                    </div>
+                    {isGameSystemMsg ? (
+                      <GameCardView
+                        parsed={parsedSystemMsg}
+                        profileId={msg.profile_id || ''}
+                        todayScores={todayScores}
+                      />
+                    ) : (
+                      <div className={`p-3 rounded-2xl text-xs font-semibold shadow-sm border ${isSelf
+                        ? 'bg-indigo-600 text-white border-indigo-700 rounded-tr-none'
+                        : 'bg-white/70 text-slate-800 border-slate-100 rounded-tl-none'
+                        }`}>
+                        {msg.content}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

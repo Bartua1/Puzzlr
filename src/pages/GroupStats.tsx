@@ -290,7 +290,51 @@ export const GroupStats = () => {
         return score > 0;
       };
 
-      // 7. Aggregate day-by-day points
+      // 7. Pre-calculate position points per user per date per game category
+      const gameScoresByDateAndGame = new Map<string, DailyScore[]>();
+      scoresList.forEach(score => {
+        const categoryId = ['word_grid', 'wordle_es', 'la_palabra'].includes(score.game_id) ? 'word_grid' : score.game_id;
+        const key = `${score.solved_date}_${categoryId}`;
+        if (!gameScoresByDateAndGame.has(key)) {
+          gameScoresByDateAndGame.set(key, []);
+        }
+        gameScoresByDateAndGame.get(key)!.push(score);
+      });
+
+      const pointsByProfileAndDateAndGame = new Map<string, number>();
+
+      gameScoresByDateAndGame.forEach((scores, dateAndCategoryKey) => {
+        const [date] = dateAndCategoryKey.split('_');
+
+        // De-duplicate by profile_id to get unique players' best scores
+        const userBestScoresMap: Record<string, DailyScore> = {};
+        scores.forEach(s => {
+          const existing = userBestScoresMap[s.profile_id];
+          if (!existing || s.score > existing.score) {
+            userBestScoresMap[s.profile_id] = s;
+          }
+        });
+
+        const uniqueScores = Object.values(userBestScoresMap);
+        const sortedScores = uniqueScores.sort((a, b) => b.score - a.score);
+        const totalPlayers = sortedScores.length;
+
+        sortedScores.forEach(scoreRow => {
+          const profileId = scoreRow.profile_id;
+          const key = `${profileId}_${date}_${scoreRow.game_id}`;
+          
+          let pts = 15; // 15 instantly for playing
+          
+          // Position points: 5 * (total - position + 1)
+          const userScore = scoreRow.score;
+          const higherCount = sortedScores.filter(s => s.score > userScore).length;
+          const position = higherCount + 1;
+          pts += 5 * (totalPlayers - position + 1);
+          pointsByProfileAndDateAndGame.set(key, pts);
+        });
+      });
+
+      // 8. Aggregate day-by-day points
       const statsList: MemberStats[] = members.map(m => {
         const pointsHistory: number[] = [];
         let totalPlayed = 0;
@@ -303,9 +347,9 @@ export const GroupStats = () => {
 
           let dayPoints = 0;
           dayScores.forEach(score => {
-            const base = gamesMap.get(score.game_id) || 10;
-            const bonus = score.max_score > 0 ? Math.floor((score.score / score.max_score) * 10) : 0;
-            dayPoints += base + bonus;
+            const pointsKey = `${m.id}_${date}_${score.game_id}`;
+            const pts = pointsByProfileAndDateAndGame.get(pointsKey) || 15;
+            dayPoints += pts;
 
             totalPlayed += 1;
             if (isGameWon(score.game_id, score.score, score.max_score)) {

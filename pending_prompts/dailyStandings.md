@@ -1,0 +1,1 @@
+make it so the daily crown doesnt bounce, its a bit annoying, also instead of showing the bars make it so we show the points in a semi transparent white sort of like this (image from another game)

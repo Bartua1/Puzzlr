@@ -3,10 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useDailyScores } from '../hooks/useDailyScores';
 import { useGroups } from '../hooks/useGroups';
+import { useNotifications } from '../hooks/useNotifications';
 import { parseShareText } from '../services/parser';
 import { triggerHapticClick, triggerHapticSuccess, triggerHapticError } from '../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { Clipboard, ShieldAlert, CheckCircle2, Volume2, VolumeX, X, ArrowLeft, Copy, Share2, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Clipboard as CapClipboard } from '@capacitor/clipboard';
 import coinX3 from '../assets/coin_x3.svg';
 import streakHot from '../assets/streak_hot.svg';
 import streakCold from '../assets/streak_cold.svg';
@@ -38,8 +41,9 @@ const SUGGESTED_NAMES = [
 
 export const Dashboard = () => {
   const { profile } = useAuth();
-  const { scores, submitScore } = useDailyScores();
+  const { scores, submitScore, loading: scoresLoading } = useDailyScores();
   const { groups, createGroup, joinGroup, loading: groupsLoading, getStandings, getGroupMembers } = useGroups();
+  const { unreadMessages, pendingGames } = useNotifications();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -124,6 +128,9 @@ export const Dashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showClipboardModal, setShowClipboardModal] = useState(false);
+  const [clipboardDetectText, setClipboardDetectText] = useState('');
+  const [detectedGame, setDetectedGame] = useState<{ gameId: string; gameName: string } | null>(null);
 
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedPresetUrl, setSelectedPresetUrl] = useState(BANNER_PRESETS[0].url);
@@ -152,6 +159,78 @@ export const Dashboard = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // Check clipboard on app load and focus/interaction
+  useEffect(() => {
+    if (!profile?.id || scoresLoading || groupsLoading) return;
+
+    const checkClipboard = async () => {
+      let text = '';
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { value } = await CapClipboard.read();
+          text = value || '';
+        } catch (err) {
+          console.warn('Failed to read native clipboard:', err);
+        }
+      } else {
+        try {
+          text = await navigator.clipboard.readText();
+        } catch (err) {
+          // Silent catch since browsers block clipboard reading until user interaction
+          console.debug('Clipboard read blocked or denied:', err);
+        }
+      }
+
+      if (!text || !text.trim()) return;
+
+      // Avoid prompting if they already ignored/submitted this exact text
+      const lastIgnored = sessionStorage.getItem('puzzlr_last_ignored_clip');
+      if (lastIgnored === text) return;
+
+      const parsed = parseShareText(text);
+      if (!parsed) return;
+
+      // Check if user already submitted a score for this minigame today
+      const alreadySubmitted = scores.some((s) => 
+        s.game_id === parsed.gameId || 
+        ((parsed.gameId === 'wordle_es' || parsed.gameId === 'la_palabra') && 
+         (s.game_id === 'wordle_es' || s.game_id === 'la_palabra'))
+      );
+
+      if (!alreadySubmitted) {
+        setClipboardDetectText(text);
+        setDetectedGame({ gameId: parsed.gameId, gameName: parsed.gameName });
+        setShowClipboardModal(true);
+        triggerHapticClick();
+      }
+    };
+
+    // Run once after mount/load delay
+    const timer = setTimeout(() => {
+      checkClipboard();
+    }, 1000);
+
+    // Run when window gets focus (e.g. user switches tab back after copying)
+    const handleFocus = () => {
+      checkClipboard();
+    };
+
+    // Run on click as a fallback to guarantee user interaction gesture
+    const handleInteraction = () => {
+      checkClipboard();
+      window.removeEventListener('click', handleInteraction);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('click', handleInteraction);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('click', handleInteraction);
+    };
+  }, [profile?.id, scoresLoading, groupsLoading, scores]);
 
   const openCreateModal = () => {
     setNewGroupName('');
@@ -842,7 +921,23 @@ export const Dashboard = () => {
                         </div>
 
                         {/* Right-aligned badges */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Unread Chat Messages Badge */}
+                          {unreadMessages[group.id] > 0 && (
+                            <div className="bg-sky-50 text-sky-700 font-extrabold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border border-sky-100 shadow-sm animate-pulse">
+                              <span>💬</span>
+                              <span>{unreadMessages[group.id]}</span>
+                            </div>
+                          )}
+
+                          {/* Pending Games Badge */}
+                          {pendingGames[group.id] > 0 && (
+                            <div className="bg-emerald-50 text-emerald-700 font-extrabold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-100 shadow-sm">
+                              <span>🎯</span>
+                              <span>{pendingGames[group.id]} {pendingGames[group.id] === 1 ? 'play' : 'plays'}</span>
+                            </div>
+                          )}
+
                           {/* Streak fire badge */}
                           <div className="bg-slate-100 text-slate-700 font-extrabold text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
                             <img
@@ -1067,6 +1162,74 @@ export const Dashboard = () => {
             >
               Sweet!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* CLIPBOARD SCORE DETECTED MODAL */}
+      {showClipboardModal && detectedGame && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white text-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-5 shadow-2xl relative border border-slate-100">
+            <button
+              onClick={async () => {
+                await triggerHapticClick();
+                setShowClipboardModal(false);
+                sessionStorage.setItem('puzzlr_last_ignored_clip', clipboardDetectText);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 active:scale-95 transition-transform"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-12 h-12 rounded-full bg-sky-50 flex items-center justify-center text-sky-600 mb-2">
+                <Clipboard className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 leading-tight">
+                {t('dashboard.clipboardModal.title', 'Score Detected')}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium px-2 leading-relaxed">
+                {t('dashboard.clipboardModal.prompt', {
+                  defaultValue: 'We found a score for {{gameName}} in your clipboard. Do you want to submit it to your leagues?',
+                  gameName: detectedGame.gameName
+                })}
+              </p>
+            </div>
+
+            {/* Snippet of the clipboard text formatted nicely */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 max-h-24 overflow-y-auto">
+              <pre className="text-[10px] text-slate-500 font-mono whitespace-pre-wrap break-all leading-tight">
+                {clipboardDetectText}
+              </pre>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={async () => {
+                  await triggerHapticClick();
+                  setShowClipboardModal(false);
+                  sessionStorage.setItem('puzzlr_last_ignored_clip', clipboardDetectText);
+                }}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all text-xs active:scale-[0.98]"
+              >
+                {t('dashboard.clipboardModal.ignoreBtn', 'No, Ignore')}
+              </button>
+              <button
+                onClick={async () => {
+                  await triggerHapticClick();
+                  setShowClipboardModal(false);
+                  sessionStorage.setItem('puzzlr_last_ignored_clip', clipboardDetectText);
+                  // Open submit modal and auto-submit
+                  setClipboardText(clipboardDetectText);
+                  setShowSubmitModal(true);
+                  // Process submission
+                  await processSubmission(clipboardDetectText);
+                }}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all text-xs shadow-sm active:scale-[0.98]"
+              >
+                {t('dashboard.clipboardModal.submitBtn', 'Yes, Submit')}
+              </button>
+            </div>
           </div>
         </div>
       )}
