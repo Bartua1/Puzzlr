@@ -317,6 +317,27 @@ export const GroupDetails = () => {
     }
   };
 
+  const pointerStartRef = useRef<number | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStartRef.current = e.clientX;
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (pointerStartRef.current === null) return;
+    const diffX = e.clientX - pointerStartRef.current;
+    pointerStartRef.current = null;
+
+    // Threshold of 50px for a swipe
+    if (diffX > 50 && activeGameIndex === 0) {
+      scrollToGame(activeGames.length - 1);
+      triggerHapticClick();
+    } else if (diffX < -50 && activeGameIndex === activeGames.length - 1) {
+      scrollToGame(0);
+      triggerHapticClick();
+    }
+  };
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tick, setTick] = useState(0);
@@ -987,10 +1008,13 @@ export const GroupDetails = () => {
                 <div
                   ref={carouselRef}
                   onScroll={handleScroll}
+                  onPointerDown={handlePointerDown}
+                  onPointerUp={handlePointerUp}
                   className="flex-1 flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-1"
                   style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
+                    touchAction: 'pan-y'
                   }}
                 >
                   {activeGames.map((game) => {
