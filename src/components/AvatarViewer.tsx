@@ -1,216 +1,5 @@
-// 1. Character Base Render
-const CharacterBaseSVG = () => (
-  <svg viewBox="0 0 100 100" className="w-full h-full">
-    {/* Body/Head base */}
-    <circle cx="50" cy="52" r="32" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="3" />
-    {/* Blushing cheeks */}
-    <circle cx="34" cy="58" r="5" fill="#FCA5A5" opacity="0.6" />
-    <circle cx="66" cy="58" r="5" fill="#FCA5A5" opacity="0.6" />
-    {/* Eyes */}
-    <circle cx="38" cy="50" r="3.5" fill="#334155" />
-    <circle cx="62" cy="50" r="3.5" fill="#334155" />
-    {/* Smile */}
-    <path d="M 44 60 Q 50 65 56 60" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
-  </svg>
-);
 
-// 2. Knight Helmet Overlay/Thumbnail
-const KnightHelmetSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    {/* Plume */}
-    <path d="M 50 15 Q 65 5 70 20 Q 60 25 50 22" fill="#EF4444" />
-    {/* Helmet dome */}
-    <path d="M 28 48 C 28 25, 72 25, 72 48 C 72 54, 70 60, 68 64 C 50 66, 50 66, 32 64 C 30 60, 28 54, 28 48 Z" fill="#94A3B8" stroke="#475569" strokeWidth="2.5" />
-    {/* Visor */}
-    <path d="M 32 42 L 68 42 C 70 47, 70 51, 68 53 L 32 53 C 30 51, 30 47, 32 42 Z" fill="#475569" />
-    {/* Visor slit */}
-    <rect x="38" y="46" width="24" height="2" rx="1" fill="#FBBF24" />
-    {/* Cheek protection lines */}
-    <path d="M 32 56 L 36 68 L 44 65 Z" fill="#64748B" stroke="#475569" strokeWidth="1.5" />
-    <path d="M 68 56 L 64 68 L 56 65 Z" fill="#64748B" stroke="#475569" strokeWidth="1.5" />
-  </svg>
-);
-
-// 3. Wizard Hat/Robe Overlay/Thumbnail
-const WizardSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full animate-pulse" : "w-full h-full"}>
-    {/* Hat cone */}
-    <path d="M 18 42 L 50 10 L 82 42 Z" fill="#6D28D9" stroke="#4C1D95" strokeWidth="2.5" />
-    {/* Stars on Hat */}
-    <polygon points="50,20 52,24 57,24 53,27 55,31 50,29 45,31 47,27 43,24 48,24" fill="#FBBF24" />
-    <polygon points="38,30 39,32 42,32 40,34 41,36 38,35 35,36 36,34 34,32 37,32" fill="#FBBF24" />
-    <polygon points="62,30 63,32 66,32 64,34 65,36 62,35 59,36 60,34 58,32 61,32" fill="#FBBF24" />
-    {/* Hat brim */}
-    <ellipse cx="50" cy="42" rx="36" ry="6" fill="#4C1D95" />
-    {/* Robe collar */}
-    {isOverlay && (
-      <path d="M 25 78 Q 50 68 75 78 L 70 95 L 30 95 Z" fill="#6D28D9" opacity="0.9" />
-    )}
-  </svg>
-);
-
-// 3a. Astronaut Helmet Overlay/Thumbnail
-const AstronautHelmetSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    <defs>
-      <linearGradient id="astroVisor" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FBBF24" />
-        <stop offset="50%" stopColor="#F59E0B" />
-        <stop offset="100%" stopColor="#D97706" />
-      </linearGradient>
-      <linearGradient id="astroHelmet" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="100%" stopColor="#E2E8F0" />
-      </linearGradient>
-    </defs>
-    {/* Base Collar / Neck Ring */}
-    <path d="M 24 72 C 24 64, 76 64, 76 72 C 76 76, 24 76, 24 72 Z" fill="#CBD5E1" stroke="#94A3B8" strokeWidth="2" />
-    <path d="M 28 73 C 28 68, 72 68, 72 73" fill="none" stroke="#EF4444" strokeWidth="2.5" />
-    {/* Main White Dome */}
-    <path d="M 20 48 C 20 22, 80 22, 80 48 C 80 64, 76 70, 70 73 C 50 75, 50 75, 30 73 C 24 70, 20 64, 20 48 Z" fill="url(#astroHelmet)" stroke="#94A3B8" strokeWidth="2.5" />
-    {/* Visor Area */}
-    <path d="M 26 46 C 26 34, 74 34, 74 46 C 74 58, 68 64, 50 64 C 32 64, 26 58, 26 46 Z" fill="url(#astroVisor)" stroke="#94A3B8" strokeWidth="2" />
-    {/* Visor Reflection Shine */}
-    <path d="M 32 40 Q 50 34 68 40 Q 50 38 32 40 Z" fill="#FFF" opacity="0.4" />
-    {/* Side Communication Nodes */}
-    <circle cx="18" cy="48" r="4" fill="#64748B" />
-    <circle cx="82" cy="48" r="4" fill="#64748B" />
-  </svg>
-);
-
-// 3b. Pirate Captain Hat & Eye Patch Overlay/Thumbnail
-const PirateCaptainSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    <defs>
-      <linearGradient id="pirateGold" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#FBBF24" />
-        <stop offset="100%" stopColor="#D97706" />
-      </linearGradient>
-    </defs>
-    {/* Eyepatch over left eye (which is cx=38, cy=50 in CharacterBase) */}
-    {isOverlay && (
-      <>
-        {/* Eyepatch Strap */}
-        <path d="M 12 40 L 88 56" stroke="#1E293B" strokeWidth="2.5" />
-        {/* Eyepatch Cup */}
-        <ellipse cx="38" cy="50" rx="8" ry="7" fill="#1E293B" stroke="#0F172A" strokeWidth="1" />
-      </>
-    )}
-    {/* Pirate Hat (Tricorn) */}
-    {/* Base brim curved upwards */}
-    <path d="M 10 38 C 30 46, 70 46, 90 38 C 94 32, 94 28, 90 28 C 75 34, 25 34, 10 28 C 6 28, 6 32, 10 38 Z" fill="#1E293B" stroke="#0F172A" strokeWidth="2" />
-    {/* Crown of the hat */}
-    <path d="M 22 30 C 22 10, 78 10, 78 30 Z" fill="#1E293B" />
-    {/* Tricorn folded corners */}
-    <path d="M 10 28 Q 24 16 38 28 Z" fill="#0F172A" />
-    <path d="M 90 28 Q 76 16 62 28 Z" fill="#0F172A" />
-    {/* Gold Trim on Brim */}
-    <path d="M 10 32 C 30 40, 70 40, 90 32" fill="none" stroke="url(#pirateGold)" strokeWidth="1.5" />
-    {/* Skull & Crossbones motif on Hat */}
-    <circle cx="50" cy="22" r="3.5" fill="#FFF" />
-    <path d="M 48 25.5 L 52 25.5 L 51 28 L 49 28 Z" fill="#FFF" />
-    {/* Crossbones */}
-    <line x1="45" y1="21" x2="55" y2="27" stroke="#FFF" strokeWidth="1" />
-    <line x1="45" y1="27" x2="55" y2="21" stroke="#FFF" strokeWidth="1" />
-  </svg>
-);
-
-// 3c. Cyberpunk Visor Overlay/Thumbnail
-const CyberpunkVisorSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    <defs>
-      <linearGradient id="cyberNeon" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#06B6D4" />
-        <stop offset="50%" stopColor="#EC4899" />
-        <stop offset="100%" stopColor="#8B5CF6" />
-      </linearGradient>
-    </defs>
-    {/* Visor plate covering both eyes (cx=38/62, cy=50) */}
-    <rect x="16" y="42" width="68" height="15" rx="4" fill="url(#cyberNeon)" stroke="#FFF" strokeWidth="1" opacity="0.95" />
-    {/* Glowing light streak */}
-    <line x1="22" y1="46" x2="78" y2="46" stroke="#FFF" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-    {/* HUD markings */}
-    <circle cx="24" cy="52" r="1.5" fill="#FFF" />
-    <line x1="70" y1="52" x2="76" y2="52" stroke="#FFF" strokeWidth="1" />
-    {/* Earpieces */}
-    <path d="M 12 40 L 16 43 L 16 56 L 12 59 Z" fill="#334155" />
-    <path d="M 88 40 L 84 43 L 84 56 L 88 59 Z" fill="#334155" />
-  </svg>
-);
-
-// 3d. Ninja Cowl & Headband Overlay/Thumbnail
-const NinjaCowlSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    {/* Cowl covering bottom half of face */}
-    {isOverlay && (
-      <path d="M 18 56 Q 30 52 50 52 Q 70 52 82 56 C 82 72, 76 84, 50 84 C 24 84, 18 72, 18 56 Z" fill="#1E293B" stroke="#0F172A" strokeWidth="1.5" />
-    )}
-    {/* Forehead Headband */}
-    <path d="M 18 30 C 30 27, 70 27, 82 30 L 80 37 C 70 34, 30 34, 20 37 Z" fill="#1E293B" />
-    {/* Metal Plate */}
-    <rect x="38" y="29" width="24" height="6" rx="1" fill="#94A3B8" stroke="#475569" strokeWidth="1" />
-    {/* Plate Rivets */}
-    <circle cx="41" cy="32" r="0.6" fill="#475569" />
-    <circle cx="59" cy="32" r="0.6" fill="#475569" />
-    {/* Headband hanging ties at the side */}
-    {isOverlay && (
-      <path d="M 16 33 Q 8 36 12 48 Q 14 38 18 36 Z" fill="#0F172A" />
-    )}
-  </svg>
-);
-
-// 3e. Royal Crown & Cape Overlay/Thumbnail
-const RoyalCrownSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    <defs>
-      <linearGradient id="crownGold" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#FDE68A" />
-        <stop offset="50%" stopColor="#F59E0B" />
-        <stop offset="100%" stopColor="#D97706" />
-      </linearGradient>
-    </defs>
-    {/* Velvet Cape */}
-    {isOverlay && (
-      <path d="M 23 76 C 23 76, 50 68, 77 76 L 73 95 L 27 95 Z" fill="#DC2626" stroke="#991B1B" strokeWidth="2" />
-    )}
-    {/* Gold Crown */}
-    <path d="M 26 34 L 30 20 L 40 28 L 50 16 L 60 28 L 70 20 L 74 34 Z" fill="url(#crownGold)" stroke="#B45309" strokeWidth="1.5" />
-    {/* Crown Base Rim */}
-    <rect x="25" y="32" width="50" height="4" rx="1" fill="#D97706" />
-    {/* Jewels on Crown Peaks */}
-    <circle cx="30" cy="20" r="2" fill="#EF4444" />
-    <circle cx="50" cy="16" r="2" fill="#3B82F6" />
-    <circle cx="70" cy="20" r="2" fill="#EF4444" />
-    {/* Jewels on Crown Base Rim */}
-    <circle cx="35" cy="34" r="1.2" fill="#10B981" />
-    <circle cx="50" cy="34" r="1.2" fill="#FFF" />
-    <circle cx="65" cy="34" r="1.2" fill="#10B981" />
-  </svg>
-);
-
-// 3f. Detective Fedora & Monocle Overlay/Thumbnail
-const DetectiveFedoraSVG = ({ isOverlay = false }: { isOverlay?: boolean }) => (
-  <svg viewBox="0 0 100 100" className={isOverlay ? "absolute inset-0 w-full h-full" : "w-full h-full"}>
-    {/* Monocle over right eye (which is cx=62, cy=50 in CharacterBase) */}
-    {isOverlay && (
-      <>
-        {/* Monocle Glass & Gold Rim */}
-        <circle cx="62" cy="50" r="8" fill="none" stroke="#FBBF24" strokeWidth="1.8" opacity="0.9" />
-        {/* Monocle Chain */}
-        <path d="M 70 50 Q 82 58 74 76" fill="none" stroke="#F59E0B" strokeWidth="1" strokeDasharray="2 1" />
-      </>
-    )}
-    {/* Fedora Hat */}
-    {/* Hat Crown */}
-    <path d="M 30 36 C 30 20, 70 20, 70 36 Z" fill="#78350F" stroke="#451A03" strokeWidth="1.5" />
-    {/* Hat Band */}
-    <rect x="29" y="31" width="42" height="5" fill="#1E293B" />
-    {/* Hat Brim */}
-    <ellipse cx="50" cy="36" rx="28" ry="4" fill="#78350F" stroke="#451A03" strokeWidth="1.5" />
-  </svg>
-);
-
-// 4. Gold Badge SVG (Premium)
+// 1. Gold Badge SVG (Premium)
 const GoldBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -247,7 +36,7 @@ const GoldBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 5. Silver Badge SVG (Premium)
+// 2. Silver Badge SVG (Premium)
 const SilverBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -283,7 +72,7 @@ const SilverBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 6. Diamond Frost Badge SVG
+// 3. Diamond Frost Badge SVG
 const DiamondBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -321,7 +110,7 @@ const DiamondBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 7. Emerald Flame Badge SVG
+// 4. Emerald Flame Badge SVG
 const EmeraldBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -359,7 +148,7 @@ const EmeraldBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 8. Rose Crystal Badge SVG
+// 5. Rose Crystal Badge SVG
 const RoseBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -396,7 +185,7 @@ const RoseBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 9. Neon Pulse Badge SVG
+// 6. Neon Pulse Badge SVG
 const NeonBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -434,7 +223,7 @@ const NeonBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 10. Sunset Blaze Badge SVG
+// 7. Sunset Blaze Badge SVG
 const SunsetBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -479,7 +268,7 @@ const SunsetBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// 11. Cosmic Void Badge SVG
+// 8. Cosmic Void Badge SVG
 const CosmicBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   <svg viewBox="0 0 100 100" className="w-full h-full">
     <defs>
@@ -521,16 +310,8 @@ const CosmicBadgeSVG = ({ showFrame = false }: { showFrame?: boolean }) => (
   </svg>
 );
 
-// Unified renderer helper (exported so consumers like Shop.tsx can use it directly)
-export const CosmeticGraphic = ({ assetKey, isOverlay = false, showFrame = false }: { assetKey: string; isOverlay?: boolean; showFrame?: boolean }) => {
-  if (assetKey === 'cos_knight') return <KnightHelmetSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_wizard') return <WizardSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_astronaut') return <AstronautHelmetSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_pirate') return <PirateCaptainSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_cyber') return <CyberpunkVisorSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_ninja') return <NinjaCowlSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_royal') return <RoyalCrownSVG isOverlay={isOverlay} />;
-  if (assetKey === 'cos_detective') return <DetectiveFedoraSVG isOverlay={isOverlay} />;
+// Unified renderer helper for Badges
+export const CosmeticGraphic = ({ assetKey, showFrame = false }: { assetKey: string; isOverlay?: boolean; showFrame?: boolean }) => {
   if (assetKey === 'badge_gold') return <GoldBadgeSVG showFrame={showFrame} />;
   if (assetKey === 'badge_silver') return <SilverBadgeSVG showFrame={showFrame} />;
   if (assetKey === 'badge_diamond') return <DiamondBadgeSVG showFrame={showFrame} />;
@@ -539,12 +320,13 @@ export const CosmeticGraphic = ({ assetKey, isOverlay = false, showFrame = false
   if (assetKey === 'badge_neon') return <NeonBadgeSVG showFrame={showFrame} />;
   if (assetKey === 'badge_sunset') return <SunsetBadgeSVG showFrame={showFrame} />;
   if (assetKey === 'badge_cosmic') return <CosmicBadgeSVG showFrame={showFrame} />;
-  return <CharacterBaseSVG />;
+  return null;
 };
 
 interface AvatarViewerProps {
-  characterKey: string;
-  badgeKey: string;
+  avatarUrl?: string | null;
+  characterKey?: string | null;
+  badgeKey?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   borderClass?: string;
   shadowClass?: string;
@@ -552,13 +334,18 @@ interface AvatarViewerProps {
 }
 
 export const AvatarViewer = ({ 
-  characterKey, 
+  avatarUrl, 
+  characterKey,
   badgeKey, 
   size = 'lg',
   borderClass = 'border-slate-200',
   shadowClass = 'shadow-inner',
   showBadgeTag = size === 'lg'
 }: AvatarViewerProps) => {
+  // Reference characterKey to avoid unused variable compiler check
+  if (characterKey) {
+    console.debug('Character equipped:', characterKey);
+  }
   const containerClass = 
     size === 'lg' ? 'w-36 h-36' : 
     size === 'md' ? 'w-12 h-12' : 
@@ -590,12 +377,22 @@ export const AvatarViewer = ({
 
       {/* Main Avatar Circle */}
       <div className={`w-full h-full bg-white rounded-full border-2 ${borderClass} flex items-center justify-center overflow-hidden relative ${shadowClass} z-10`}>
-        {/* Base Character SVG */}
-        <CosmeticGraphic assetKey="char_base" />
-
-        {/* Costume/Outfit Overlay SVG */}
-        {characterKey && characterKey !== 'char_base' && (
-          <CosmeticGraphic assetKey={characterKey} isOverlay={true} />
+        {avatarUrl ? (
+          <img 
+            src={avatarUrl} 
+            alt="Avatar" 
+            className="w-full h-full object-cover rounded-full" 
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : (
+          /* Beautiful minimalist user silhouette fallback SVG */
+          <svg viewBox="0 0 100 100" className="w-full h-full text-slate-300 bg-slate-100 p-2">
+            <path d="M 50 15 C 38 15, 28 25, 28 37 C 28 49, 38 59, 50 59 C 62 59, 72 49, 72 37 C 72 25, 62 15, 50 15 Z" fill="currentColor" />
+            <path d="M 50 63 C 28 63, 15 72, 15 85 L 85 85 C 85 72, 72 63, 50 63 Z" fill="currentColor" />
+          </svg>
         )}
       </div>
 

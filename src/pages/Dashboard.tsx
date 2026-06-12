@@ -14,6 +14,7 @@ import coinX3 from '../assets/coin_x3.svg';
 import streakHot from '../assets/streak_hot.svg';
 import streakCold from '../assets/streak_cold.svg';
 import streakProtector from '../assets/streak_protector.svg';
+import appLogo from '../assets/app_logo.svg';
 import { supabase } from '../services/supabase';
 import { AvatarViewer } from '../components/AvatarViewer';
 
@@ -42,7 +43,7 @@ const SUGGESTED_NAMES = [
 export const Dashboard = () => {
   const { profile } = useAuth();
   const { scores, submitScore, loading: scoresLoading } = useDailyScores();
-  const { groups, createGroup, joinGroup, loading: groupsLoading, getStandings, getGroupMembers } = useGroups();
+  const { groups, createGroup, joinGroup, loading: groupsLoading, getStandings, getGroupMembers, updateMuteStatus } = useGroups();
   const { unreadMessages, pendingGames } = useNotifications();
   const { t } = useTranslation();
   const location = useLocation();
@@ -57,6 +58,41 @@ export const Dashboard = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [solvedDates, setSolvedDates] = useState<string[]>([]);
 
+  // Toast state
+  const [mutedGroups, setMutedGroups] = useState<Record<string, boolean>>({});
+  const [toast, setToast] = useState<{ message: string; icon: string; visible: boolean } | null>(null);
+  const [toastTimeout, setToastTimeout] = useState<any>(null);
+
+  const showToast = (message: string, icon: string = '🔔') => {
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+    }
+    setToast({ message, icon, visible: true });
+    const timer = setTimeout(() => {
+      setToast(prev => prev ? { ...prev, visible: false } : null);
+    }, 2500);
+    setToastTimeout(timer);
+  };
+
+  // Sync mutedGroups state with groups fetched from DB
+  useEffect(() => {
+    if (groups && groups.length > 0) {
+      const initialMuted: Record<string, boolean> = {};
+      groups.forEach((g) => {
+        initialMuted[g.id] = g.is_muted || false;
+      });
+      setMutedGroups(initialMuted);
+    }
+  }, [groups]);
+
+  // Clean up toast timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeout) clearTimeout(toastTimeout);
+    };
+  }, [toastTimeout]);
+  const [frozenDates, setFrozenDates] = useState<string[]>([]);
+
   useEffect(() => {
     const fetchSolvedDates = async () => {
       if (!profile?.id) return;
@@ -69,7 +105,21 @@ export const Dashboard = () => {
         setSolvedDates(Array.from(new Set(dates)));
       }
     };
+
+    const fetchFrozenDates = async () => {
+      if (!profile?.id) return;
+      const { data, error } = await supabase
+        .from('streak_freezes')
+        .select('freeze_date')
+        .eq('profile_id', profile.id);
+      if (!error && data) {
+        const dates = data.map((d: any) => d.freeze_date);
+        setFrozenDates(Array.from(new Set(dates)));
+      }
+    };
+
     fetchSolvedDates();
+    fetchFrozenDates();
   }, [profile?.id, scores]);
 
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
@@ -114,7 +164,6 @@ export const Dashboard = () => {
   // Standings and members state per group
   const [groupStandings, setGroupStandings] = useState<Record<string, any[]>>({});
   const [groupMembers, setGroupMembers] = useState<Record<string, any[]>>({});
-  const [mutedGroups, setMutedGroups] = useState<Record<string, boolean>>({});
   const [cosmetics, setCosmetics] = useState<any[]>([]);
 
   // Fetch cosmetics for character resolution
@@ -415,11 +464,35 @@ export const Dashboard = () => {
     }
   };
 
-  const toggleMuteGroup = (groupId: string, e: React.MouseEvent) => {
+  const toggleMuteGroup = async (groupId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    triggerHapticClick();
-    setMutedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+    await triggerHapticClick();
+
+    const currentMuted = mutedGroups[groupId] || false;
+    const newMuted = !currentMuted;
+
+    // Find group name
+    const groupName = groups.find(g => g.id === groupId)?.name || t('dashboard.group', 'Group');
+
+    // Show glass material toast message
+    const message = newMuted
+      ? t('dashboard.groupMuted', { defaultValue: 'Muted {{groupName}}', groupName })
+      : t('dashboard.groupUnmuted', { defaultValue: 'Unmuted {{groupName}}', groupName });
+
+    const toastIcon = newMuted ? '🔕' : '🔔';
+    showToast(message, toastIcon);
+
+    // Optimistically update local UI state
+    setMutedGroups(prev => ({ ...prev, [groupId]: newMuted }));
+
+    // Save to database
+    const res = await updateMuteStatus(groupId, newMuted);
+    if (!res.success) {
+      // Revert local state on database error
+      setMutedGroups(prev => ({ ...prev, [groupId]: currentMuted }));
+      showToast(t('dashboard.errors.muteFailed', { defaultValue: 'Failed to update mute status' }), '⚠️');
+    }
   };
 
   if (showCreateModal) {
@@ -668,13 +741,13 @@ export const Dashboard = () => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-gradient-to-b from-surface-container-low to-surface-container text-on-surface font-body-md pb-24 pt-safe pb-safe">
       {/* Top Navbar */}
-      <header className="flex justify-between items-center px-margin-mobile h-16 w-full z-50 fixed top-0 bg-surface-container-low/90 backdrop-blur-md border-b border-white/10">
+      <header className="flex justify-between items-center px-margin-mobile pt-safe h-[calc(4rem+env(safe-area-inset-top,0px))] w-full z-50 fixed top-0 bg-surface-container-low/90 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary-fixed shadow-sm">
             <img
               alt="Puzzlr Mascot"
               className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida/AP1WRLs6-Xdfp4G9uAP_f3ikAd5th19MEN4H7U-gbkiEoBfwhXyWRkUHE9daxPltsbDfy5pPiG0sKd2b90nGHShiBm7Rf_iIF24S3Rf3Tc0Ibl75tgZEreZaMkFA8Ht00_FHomHkW5wdcYEEGy7fwkJ1n6o3Vb2UeCj6A_5MfjOGNVFZ_BQFJ554l4yZcTDunt-kFdIPQeS0AwHnGZJ1cIkNePpc8kWhmBXvEhLD5zDrwKqBbbwu0aYnFOQazA1S"
+              src={appLogo}
             />
           </div>
           <h1 className="text-headline-md font-headline-md text-on-surface">Puzzlr</h1>
@@ -731,7 +804,7 @@ export const Dashboard = () => {
       <div className="w-full pt-16 flex-1 flex flex-col">
         {/* Mini Calendar Drawer - Moves the rest of the UI down */}
         <div className={`bg-white/95 border-slate-200/50 shadow-sm transition-all duration-500 ease-in-out overflow-hidden ${showCalendar
-          ? 'max-h-[500px] py-5 px-6 opacity-100 border-y'
+          ? 'max-h-[600px] py-5 px-6 opacity-100 border-y'
           : 'max-h-0 py-0 px-6 opacity-0 border-y-0'
           }`}>
           <div className="max-w-md mx-auto space-y-4">
@@ -758,11 +831,53 @@ export const Dashboard = () => {
                 </button>
               </div>
 
-              <div className="text-xs font-black text-slate-600 flex items-center gap-1.5 select-none">
+              <div className="text-xs font-black text-slate-600 flex items-center gap-1.5 select-none bg-slate-50 border border-slate-200/60 rounded-full px-2.5 py-1">
                 <span>{profile?.streak_protectors || 0} x</span>
                 <img src={streakProtector} alt="Streak Protector" className="w-4 h-4 object-contain" />
               </div>
             </div>
+
+            {/* Duolingo Style Statistics Cards */}
+            {(() => {
+              const currentMonthYearPrefix = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+              const activeDaysThisMonth = solvedDates.filter(d => d.startsWith(currentMonthYearPrefix)).length;
+              const freezesThisMonth = frozenDates.filter(d => d.startsWith(currentMonthYearPrefix)).length;
+
+              return (
+                <div className="grid grid-cols-2 gap-3 mb-1.5 border-b border-slate-100/50 pb-2">
+                  {/* Active Days Card */}
+                  <div className="relative flex items-center gap-3 p-1 select-none">
+                    {activeDaysThisMonth >= 5 && (
+                      <span className="bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black px-1.5 py-0.5 rounded absolute -top-3 left-1 uppercase tracking-wider scale-90 origin-left">
+                        {t('calendar.excellent', 'EXCELLENT')}
+                      </span>
+                    )}
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0 text-lg shadow-inner">
+                      🔥
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-base font-black text-slate-800 leading-none">{activeDaysThisMonth}</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider truncate leading-tight mt-0.5">
+                        {t('calendar.practiceDaysLabel', 'practice days')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Freezes Used Card */}
+                  <div className="flex items-center gap-3 p-1 select-none">
+                    <div className="w-8 h-8 rounded-full bg-sky-400 flex items-center justify-center text-white shrink-0 text-lg shadow-inner">
+                      ❄️
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-base font-black text-slate-800 leading-none">{freezesThisMonth}</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider truncate leading-tight mt-0.5">
+                        {t('calendar.freezesUsedLabel', 'freezes used')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Calendar grid headers */}
             <div className="grid grid-cols-7 gap-2 text-center border-b border-slate-100 pb-1.5">
@@ -773,62 +888,106 @@ export const Dashboard = () => {
 
             {/* Calendar grid days */}
             <div className="grid grid-cols-7 gap-x-2 gap-y-3">
-              {getMonthDays().map((dayDate, idx) => {
-                if (!dayDate) {
-                  return <div key={`empty-${idx}`} className="w-9 h-9" />;
-                }
+              {(() => {
+                const days = getMonthDays();
+                return days.map((dayDate, idx) => {
+                  if (!dayDate) {
+                    return <div key={`empty-${idx}`} className="w-9 h-9" />;
+                  }
 
-                // YYYY-MM-DD local construction safely
-                const year = dayDate.getFullYear();
-                const monthStr = String(dayDate.getMonth() + 1).padStart(2, '0');
-                const dateStrNum = String(dayDate.getDate()).padStart(2, '0');
-                const dateStr = `${year}-${monthStr}-${dateStrNum}`;
+                  // YYYY-MM-DD local construction safely
+                  const year = dayDate.getFullYear();
+                  const monthStr = String(dayDate.getMonth() + 1).padStart(2, '0');
+                  const dateStrNum = String(dayDate.getDate()).padStart(2, '0');
+                  const dateStr = `${year}-${monthStr}-${dateStrNum}`;
 
-                const isSolved = solvedDates.includes(dateStr);
-                const todayStr = new Date().toISOString().split('T')[0];
-                const signupDateStr = profile?.created_at ? profile.created_at.split('T')[0] : '';
+                  const isSolved = solvedDates.includes(dateStr);
+                  const isFrozen = frozenDates.includes(dateStr);
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const signupDateStr = profile?.created_at ? profile.created_at.split('T')[0] : '';
 
-                const isBeforeSignup = signupDateStr ? dateStr < signupDateStr : false;
-                const isAfterToday = dateStr > todayStr;
-                const isToday = dateStr === todayStr;
+                  const isBeforeSignup = signupDateStr ? dateStr < signupDateStr : false;
+                  const isAfterToday = dateStr > todayStr;
+                  const isToday = dateStr === todayStr;
 
-                // Simple render if outside of active user usage bounds (before signup or in future)
-                if (isBeforeSignup || isAfterToday) {
+                  // Simple render if outside of active user usage bounds (before signup or in future)
+                  if (isBeforeSignup || isAfterToday) {
+                    return (
+                      <div key={dateStr} className="flex flex-col items-center justify-center h-9 relative">
+                        <span className={`text-[10px] font-black text-slate-300 w-8 h-8 flex items-center justify-center rounded-full ${isToday ? 'border-2 border-slate-200 text-slate-400' : ''}`}>
+                          {dayDate.getDate()}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  // Determine connection to neighbors in the same week row for active (solved) days
+                  const colIdx = idx % 7;
+                  
+                  const getFormattedDayAt = (offset: number) => {
+                    const targetIdx = idx + offset;
+                    if (targetIdx < 0 || targetIdx >= days.length) return null;
+                    const d = days[targetIdx];
+                    if (!d) return null;
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dn = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${dn}`;
+                  };
+
+                  const prevDayStr = colIdx > 0 ? getFormattedDayAt(-1) : null;
+                  const nextDayStr = colIdx < 6 ? getFormattedDayAt(1) : null;
+
+                  const hasLeftConnection = isSolved && prevDayStr && solvedDates.includes(prevDayStr);
+                  const hasRightConnection = isSolved && nextDayStr && solvedDates.includes(nextDayStr);
+
+                  // Render day cell
                   return (
-                    <div key={dateStr} className="flex flex-col items-center justify-center h-9">
-                      <span className={`text-[10px] font-bold text-slate-300 w-7 h-7 rounded-full flex items-center justify-center ${isToday ? 'border border-indigo-200 text-slate-500' : ''}`}>
-                        {dayDate.getDate()}
-                      </span>
+                    <div key={dateStr} className="flex flex-col items-center justify-center h-9 relative group">
+                      
+                      {/* Active Connection Background Capsule */}
+                      {isSolved && (
+                        <div
+                          className={`absolute top-0.5 bottom-0.5 bg-gradient-to-r from-amber-400 to-orange-400 shadow-sm z-0 ${
+                            hasLeftConnection ? '-left-2' : 'left-0.5'
+                          } ${
+                            hasRightConnection ? '-right-2' : 'right-0.5'
+                          } ${
+                            !hasLeftConnection ? 'rounded-l-full' : ''
+                          } ${
+                            !hasRightConnection ? 'rounded-r-full' : ''
+                          }`}
+                        />
+                      )}
+
+                      {/* Day number container */}
+                      <div
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-black select-none z-10 transition-all ${
+                          isSolved
+                            ? 'text-white'
+                            : isFrozen
+                              ? 'bg-sky-100 border-2 border-sky-300 text-sky-700 rounded-full shadow-sm'
+                              : isToday
+                                ? 'border-2 border-dashed border-amber-400 text-slate-700 bg-amber-50/20 rounded-full animate-pulse'
+                                : 'text-slate-300 bg-transparent border-transparent'
+                        }`}
+                        title={isSolved ? 'Solved!' : isFrozen ? 'Streak Frozen' : isToday ? 'Today' : 'Missed day'}
+                      >
+                        <span>{dayDate.getDate()}</span>
+
+                        {/* Fire badge for single/isolated solved days */}
+                        {isSolved && !hasLeftConnection && !hasRightConnection && (
+                          <span className="absolute -top-1.5 -right-1 text-[8px] filter drop-shadow-sm select-none z-20">🔥</span>
+                        )}
+                        {/* Snowflake badge for freeze days */}
+                        {isFrozen && (
+                          <span className="absolute -top-1.5 -right-1.5 text-[10px] select-none z-20">❄️</span>
+                        )}
+                      </div>
                     </div>
                   );
-                }
-
-                // Render with streak state indicator (Solved vs Cold)
-                return (
-                  <div key={dateStr} className="flex flex-col items-center justify-center h-9">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs border-2 transition-all relative ${isSolved
-                        ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-white shadow-sm'
-                        : isToday
-                          ? 'border-indigo-400 border-dashed text-slate-800 bg-slate-50'
-                          : 'bg-slate-50 border-slate-100 text-slate-300'
-                        }`}
-                      title={isSolved ? 'Solved!' : 'Cold day'}
-                    >
-                      <span>{dayDate.getDate()}</span>
-                      {isSolved && (
-                        <span className="absolute -top-1.5 -right-1 text-[8px]">🔥</span>
-                      )}
-                      {!isSolved && (
-                        <span className="absolute -top-1.5 -right-1 text-[8px]">❄️</span>
-                      )}
-                      {isToday && !isSolved && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                });
+              })()}
             </div>
 
           </div>
@@ -895,7 +1054,7 @@ export const Dashboard = () => {
                             title={member.username}
                           >
                             <AvatarViewer
-                              characterKey={cosmetics.find(c => c.id === member.equipped_character_id)?.asset_key || 'char_base'}
+                              avatarUrl={member.avatar_url}
                               badgeKey={cosmetics.find(c => c.id === member.equipped_badge_id)?.asset_key || ''}
                               size="md"
                               borderClass="border-white"
@@ -1230,6 +1389,16 @@ export const Dashboard = () => {
                 {t('dashboard.clipboardModal.submitBtn', 'Yes, Submit')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* GLASS MATERIAL TOAST NOTIFICATION */}
+      {toast && toast.visible && (
+        <div className="fixed bottom-24 left-0 right-0 flex justify-center z-[9999] pointer-events-none px-4">
+          <div className="bg-white/45 dark:bg-slate-900/45 backdrop-blur-md border border-white/30 dark:border-slate-800/30 shadow-lg text-slate-800 dark:text-slate-200 px-4 py-2.5 rounded-2xl flex items-center gap-2.5 transition-all duration-300 pointer-events-auto animate-fade-in-up">
+            <span className="text-base select-none">{toast.icon}</span>
+            <span className="text-xs font-bold tracking-tight">{toast.message}</span>
           </div>
         </div>
       )}

@@ -102,7 +102,7 @@ export const useShop = () => {
     }
   };
 
-  const equipCosmetic = async (cosmeticId: string, type: 'character' | 'badge' | 'costume'): Promise<{ success: boolean }> => {
+  const equipCosmetic = async (cosmeticId: string | null, type: 'character' | 'badge' | 'costume'): Promise<{ success: boolean }> => {
     if (!user || !profile) return { success: false };
 
     // Costumes or characters are bound to equipped_character_id, badges are bound to equipped_badge_id

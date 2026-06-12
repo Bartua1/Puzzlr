@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabase';
 import { triggerHapticClick } from '../utils/haptics';
-import { ArrowLeft, Check, ChevronDown, Copy, Send } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Check } from 'lucide-react';
 import { DisclaimerFooter } from '../components/DisclaimerFooter';
 
 interface Game {
@@ -265,7 +265,7 @@ const GAME_META: Record<string, { icon: React.FC; origin: string; genericName: s
   wordle_es: { icon: WordleEsIcon, origin: 'lapalabra', genericName: 'La Palabra del Día' },
 };
 
-const getMeta = (gameId: string) =>
+export const getMeta = (gameId: string) =>
   GAME_META[gameId] ?? { icon: GenericGameIcon, origin: 'other', genericName: '' };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export const ManageGames = () => {
   const [saving, setSaving] = useState<string | null>(null); // gameId being toggled
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [group, setGroup] = useState<any>(null);
-  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     const load = async () => {
@@ -398,57 +398,7 @@ export const ManageGames = () => {
           )}
         </div>
 
-        {!loading && group && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Copy code button (icon only) */}
-            <button
-              onClick={async () => {
-                await triggerHapticClick();
-                navigator.clipboard.writeText(group.invite_code);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              className={`p-2 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${
-                copied
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm'
-                  : 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 shadow-sm'
-              }`}
-              title={copied ? t('dashboard.createModal.codeCopied') : t('dashboard.createModal.copyCodeBtn')}
-            >
-              {copied ? (
-                <Check className="w-5 h-5 text-emerald-600" strokeWidth={3} />
-              ) : (
-                <Copy className="w-5 h-5" />
-              )}
-            </button>
 
-            {/* Send/Share button (icon only) */}
-            <button
-              onClick={async () => {
-                await triggerHapticClick();
-                const shareText = `Join my league on Puzzlr! Code: ${group.invite_code}`;
-                if (navigator.share) {
-                  try {
-                    await navigator.share({
-                      title: group.name,
-                      text: shareText,
-                    });
-                  } catch (err) {
-                    console.error('Error sharing:', err);
-                  }
-                } else {
-                  navigator.clipboard.writeText(shareText);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }
-              }}
-              className="p-2 rounded-xl border bg-sky-50 text-sky-700 border-sky-100 hover:bg-sky-100 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
-              title="Share Group Invite"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        )}
       </header>
 
       {/* ── Body ── */}

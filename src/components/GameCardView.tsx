@@ -24,8 +24,8 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
   // Find the score in todayScores to extract the emoji grid or raw_text details
   const matchingScore = todayScores.find(
     s => s.profile_id === profileId && (
-      s.game_id === parsed.gameId || 
-      (parsed.gameId === 'wordle_es' && s.game_id === 'la_palabra') || 
+      s.game_id === parsed.gameId ||
+      (parsed.gameId === 'wordle_es' && s.game_id === 'la_palabra') ||
       (parsed.gameId === 'la_palabra' && s.game_id === 'wordle_es')
     )
   );
@@ -105,9 +105,9 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
   const renderCard = () => {
     // 1. Daily Word Grid or Spanish Wordle (La Palabra del Día)
     if (
-      parsed.type === 'completed_word_grid' || 
-      parsed.gameId === 'word_grid' || 
-      parsed.gameId === 'wordle_es' || 
+      parsed.type === 'completed_word_grid' ||
+      parsed.gameId === 'word_grid' ||
+      parsed.gameId === 'wordle_es' ||
       parsed.gameId === 'la_palabra'
     ) {
       const isEs = parsed.gameId === 'wordle_es' || parsed.gameId === 'la_palabra' || isSpanish;
@@ -132,9 +132,8 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
             <span className="font-extrabold text-[10px] tracking-wider text-slate-800 uppercase font-outfit">
               {displayName}
             </span>
-            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-              isEs ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
-            }`}>
+            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isEs ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+              }`}>
               {badgeText}
             </span>
           </div>
@@ -203,7 +202,7 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
       const displayName = isSpanish ? 'Categorización de Grupos' : 'Group Categorization Game';
       const scoreVal = parsed.score !== undefined ? parsed.score : (matchingScore ? matchingScore.score : 0);
       const maxVal = parsed.max !== undefined ? parsed.max : (matchingScore ? matchingScore.max_score : 4);
-      
+
       const badgeText = isSpanish ? `Puntuación: ${scoreVal}/${maxVal}` : `Score: ${scoreVal}/${maxVal}`;
       const solvedText = isSpanish ? `Resuelto en ${scoreVal} grupos` : `Solved in ${scoreVal} groups`;
 
@@ -212,7 +211,7 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
       if (matchingScore && matchingScore.raw_text) {
         const lines = matchingScore.raw_text.split('\n');
         const emojiRows = lines.filter((l: string) => /[🟨🟩🟦🟪]/.test(l)).map((l: string) => l.trim());
-        
+
         emojiRows.forEach((row: string) => {
           const chars = Array.from(row);
           if (chars.length >= 4) {
@@ -292,48 +291,30 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
 
     // 3. Queen's Grid (Queens)
     if (
-      parsed.type === 'completed_chess_grid' || 
-      parsed.type === 'completed_chess_grid_no_time' || 
+      parsed.type === 'completed_chess_grid' ||
+      parsed.type === 'completed_chess_grid_no_time' ||
       parsed.gameId === 'chess_grid'
     ) {
-      const displayName = isSpanish ? "Cuadrícula de la Reina" : "Queen's Grid";
+      const displayName = isSpanish ? "Tiempo en Queens" : "Queen's Time";
       const timeVal = parsed.time || (matchingScore && matchingScore.raw_text ? matchingScore.raw_text.match(/\d+:\d+/)?.[0] : null);
-      const badgeText = timeVal ? (isSpanish ? `Tiempo: ${timeVal}` : `Time: ${timeVal}`) : (isSpanish ? 'Resuelto' : 'Solved');
-      const solvedText = isSpanish ? 'Cuadrícula Completada' : 'Chess Grid Completed';
+      const solvedText = isSpanish ? 'Cuadrícula Completada' : 'Grid Completed';
 
       return (
         <div className="p-4 w-60 rounded-2xl bg-white flex flex-col gap-3 transition-colors shadow-sm">
-          <div className="flex justify-between items-center">
-            <span className="font-extrabold text-[10px] tracking-wider text-slate-800 uppercase font-outfit">
-              {displayName}
-            </span>
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
-              {badgeText}
-            </span>
-          </div>
-
-          {/* 5x5 Grid representation with a Queen */}
-          <div className="grid grid-cols-5 gap-0.5 w-24 h-24 my-0.5 border border-purple-100 rounded-lg overflow-hidden shadow-sm">
-            {Array.from({ length: 5 }).map((_, rIdx) => {
-              return Array.from({ length: 5 }).map((_, cIdx) => {
-                const isDark = (rIdx + cIdx) % 2 === 1;
-                const hasQueen = rIdx === 1 && cIdx === 3;
-                return (
-                  <div
-                    key={`${rIdx}-${cIdx}`}
-                    className={`flex items-center justify-center ${
-                      isDark ? 'bg-purple-100' : 'bg-purple-50'
-                    }`}
-                  >
-                    {hasQueen && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-purple-700">
-                        <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
-                      </svg>
-                    )}
-                  </div>
-                );
-              });
-            })}
+          <div className="flex items-center gap-3 bg-purple-50/70 p-3 rounded-xl border border-purple-100">
+            <div className="w-10 h-10 rounded-lg bg-purple-200/60 flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-purple-750">
+                <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-purple-750/80 uppercase tracking-wider font-outfit">
+                {displayName}
+              </span>
+              <span className="text-xl font-black text-slate-800 leading-tight font-outfit">
+                {timeVal || (isSpanish ? 'Resuelto' : 'Solved')}
+              </span>
+            </div>
           </div>
 
           <div className="flex justify-between items-center border-t border-slate-100 pt-2 text-[9px] text-slate-500 font-bold">
@@ -380,14 +361,14 @@ export const GameCardView: React.FC<GameCardViewProps> = ({ parsed, profileId, t
             <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center shadow-inner">
               <Info size={24} className="stroke-[2.5]" />
             </div>
-            
+
             <div className="space-y-2">
               <h3 className="font-extrabold text-slate-800 text-sm tracking-wide uppercase font-outfit animate-pulse">
                 {isSpanish ? 'Gemas Temporales' : 'Temporary Gems'}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                {isSpanish 
-                  ? 'Estas son las gemas que se te entregarán mañana si terminas en esta posición.' 
+                {isSpanish
+                  ? 'Estas son las gemas que se te entregarán mañana si terminas en esta posición.'
                   : 'These are the gems that will be given to you tomorrow if you finish in this position.'}
               </p>
             </div>

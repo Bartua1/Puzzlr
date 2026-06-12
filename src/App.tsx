@@ -10,6 +10,7 @@ import { Settings } from './pages/Settings';
 import { GroupDetails } from './pages/GroupDetails';
 import { ManageGames } from './pages/ManageGames';
 import { GroupStats } from './pages/GroupStats';
+import { GroupSettings } from './pages/GroupSettings';
 import { useTranslation } from 'react-i18next';
 import { CapacitorShareTarget } from '@capgo/capacitor-share-target'; // Imported the plugin
 import { Splash } from './components/Splash';
@@ -75,7 +76,7 @@ const AppContent = () => {
       <Splash
         isLoading={authLoading}
         onFinishedLoading={() => setSplashFinished(true)}
-        loadingDuration={3000}
+        loadingDuration={1500}
       />
     );
   }
@@ -93,6 +94,7 @@ const AppContent = () => {
           <Route path="/group/:groupId" element={<GroupDetails />} />
           <Route path="/group/:groupId/stats" element={<GroupStats />} />
           <Route path="/group/:groupId/manage-games" element={<ManageGames />} />
+          <Route path="/group/:groupId/settings" element={<GroupSettings />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

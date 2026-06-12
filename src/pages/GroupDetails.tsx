@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabase';
 import {
   triggerHapticClick,
-  triggerHapticError
+  triggerHapticError,
+  triggerHapticSelection
 } from '../utils/haptics';
 import {
   ArrowLeft,
@@ -17,7 +18,9 @@ import {
   Users,
   X,
   BarChart2,
-  Menu
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import coinX3 from '../assets/coin_x3.svg';
 import { Browser } from '@capacitor/browser';
@@ -96,7 +99,7 @@ const GAME_PLAY_URLS: Record<string, string> = {
 const getGameCategoryTag = (gameId: string) => {
   if (gameId === 'wordle_es' || gameId === 'la_palabra') return 'ESPAÑOL';
   if (gameId === 'word_grid') return 'ENGLISH';
-  if (gameId === 'chess_grid' || gameId === 'linkedin_ques') return 'CHESS';
+  if (gameId === 'chess_grid' || gameId === 'linkedin_ques') return 'QUEEN\'S GRID';
   if (gameId === 'word_group') return 'GROUPS';
   if (gameId === 'crossword' || gameId === 'mini') return 'CROSSWORD';
   if (gameId === 'spelling_bee') return 'LETTERS';
@@ -126,25 +129,70 @@ const renderGamePreviewIcon = (gameId: string, randomGrid?: string[][]) => {
   }
   if (gameId === 'chess_grid') {
     return (
-      <div className="grid grid-cols-4 gap-1.5 w-24 h-20 justify-center items-center flex-shrink-0">
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
-        
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px] flex items-center justify-center">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-purple-800">
+      <div className="grid grid-cols-4 gap-1 w-20 h-20 justify-center items-center flex-shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-inner">
+        {/* Row 0 */}
+        <div className="w-3.5 h-3.5 bg-emerald-100 border border-emerald-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-emerald-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-emerald-100 border border-emerald-200/50 rounded-md flex items-center justify-center">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-700">
             <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
           </svg>
         </div>
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
-        
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-purple-200 rounded-[3px]"></div>
-        <div className="w-4 h-4 bg-slate-100 rounded-[3px]"></div>
+        <div className="w-3.5 h-3.5 bg-sky-100 border border-sky-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-sky-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-sky-100 border border-sky-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-sky-700/20"></div>
+        </div>
+
+        {/* Row 1 */}
+        <div className="w-3.5 h-3.5 bg-emerald-100 border border-emerald-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-emerald-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-purple-100 border border-purple-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-purple-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-sky-100 border border-sky-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-sky-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-amber-100 border border-amber-200/50 rounded-md flex items-center justify-center">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-amber-700">
+            <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
+          </svg>
+        </div>
+
+        {/* Row 2 */}
+        <div className="w-3.5 h-3.5 bg-sky-100 border border-sky-200/50 rounded-md flex items-center justify-center">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-sky-700">
+            <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
+          </svg>
+        </div>
+        <div className="w-3.5 h-3.5 bg-purple-100 border border-purple-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-purple-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-amber-100 border border-amber-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-amber-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-amber-100 border border-amber-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-amber-700/20"></div>
+        </div>
+
+        {/* Row 3 */}
+        <div className="w-3.5 h-3.5 bg-sky-100 border border-sky-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-sky-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-purple-100 border border-purple-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-purple-700/20"></div>
+        </div>
+        <div className="w-3.5 h-3.5 bg-purple-100 border border-purple-200/50 rounded-md flex items-center justify-center">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-purple-700">
+            <path d="M2 18h20v2H2zm2-2h16l-2-7-3 4-3-8-3 8-3-4z" />
+          </svg>
+        </div>
+        <div className="w-3.5 h-3.5 bg-purple-100 border border-purple-200/50 rounded-md flex items-center justify-center">
+          <div className="w-1 h-1 rounded-full bg-purple-700/20"></div>
+        </div>
       </div>
     );
   }
@@ -225,6 +273,50 @@ export const GroupDetails = () => {
   const [archiveSeasons, setArchiveSeasons] = useState<any[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Carousel states & refs
+  const [activeGameIndex, setActiveGameIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const activeGames = React.useMemo(() => {
+    return allGames.filter(g => activeGameIds.includes(g.id));
+  }, [allGames, activeGameIds]);
+
+  // Clamp activeGameIndex if activeGames changes
+  useEffect(() => {
+    if (activeGames.length > 0 && activeGameIndex >= activeGames.length) {
+      setActiveGameIndex(0);
+    }
+  }, [activeGames.length, activeGameIndex]);
+
+  const scrollToGame = (index: number) => {
+    if (!carouselRef.current) return;
+    const { clientWidth } = carouselRef.current;
+    
+    let targetIndex = index;
+    if (index < 0) {
+      targetIndex = activeGames.length - 1;
+    } else if (index >= activeGames.length) {
+      targetIndex = 0;
+    }
+
+    carouselRef.current.scrollTo({
+      left: targetIndex * clientWidth,
+      behavior: 'smooth'
+    });
+    setActiveGameIndex(targetIndex);
+  };
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return;
+    const { scrollLeft, clientWidth } = carouselRef.current;
+    if (clientWidth === 0) return;
+    const index = Math.round(scrollLeft / clientWidth);
+    if (index !== activeGameIndex && index >= 0 && index < activeGames.length) {
+      setActiveGameIndex(index);
+      triggerHapticSelection();
+    }
+  };
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [tick, setTick] = useState(0);
@@ -232,6 +324,159 @@ export const GroupDetails = () => {
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // ----------------------------------------------------
+  // Points calculation helper (Formula: Ending up last = 5 coins, ties lower points)
+  // ----------------------------------------------------
+  const calculateCoinsForGame = (gameId: string) => {
+    const isSameGameCategory = (scoreGameId: string, targetGameId: string) => {
+      if (scoreGameId === targetGameId) return true;
+      const wordleIds = ['word_grid', 'wordle_es', 'la_palabra'];
+      if (wordleIds.includes(scoreGameId) && wordleIds.includes(targetGameId)) return true;
+      return false;
+    };
+
+    // 1. Get scores for this specific game category
+    const gameScores = todayScores
+      .filter(s => isSameGameCategory(s.game_id, gameId))
+      .map(s => ({
+        profile_id: s.profile_id,
+        username: s.profiles.username,
+        avatar_url: s.profiles.avatar_url,
+        equipped_character_id: (s.profiles as any).equipped_character_id ?? null,
+        equipped_badge_id: (s.profiles as any).equipped_badge_id ?? null,
+        score: s.score,
+        solved_date: s.solved_date
+      }));
+
+    if (gameScores.length === 0) return [];
+
+    // Sort unique scores descending by score (higher score is better)
+    const sortedScores = [...gameScores].sort((a, b) => b.score - a.score);
+
+    // 4. Map each score to its coin allocation based on its rank
+    return gameScores.map(gs => {
+      let coinsGained = 15; // 15 instantly for playing
+      
+      // Position points: 5 * (total - position + 1)
+      const userScore = gs.score;
+      const higherCount = sortedScores.filter(s => s.score > userScore).length;
+      const position = higherCount + 1;
+      coinsGained += 5 * (sortedScores.length - position + 1);
+
+      return {
+        ...gs,
+        coins: coinsGained
+      };
+    }).sort((a, b) => b.score - a.score); // return sorted descending for presentation
+  };
+
+  // Standings for the currently selected game in the carousel
+  const getGameTodayStandings = (gameId: string) => {
+    const coinsAccumulator: Record<string, { username: string; avatar_url: string | null; equipped_character_id?: string | null; equipped_badge_id?: string | null; coins: number; hasPlayed: boolean; score?: number }> = {};
+
+    members.forEach(m => {
+      coinsAccumulator[m.id] = {
+        username: m.username,
+        avatar_url: m.avatar_url,
+        equipped_character_id: m.equipped_character_id,
+        equipped_badge_id: m.equipped_badge_id,
+        coins: 0,
+        hasPlayed: false
+      };
+    });
+
+    const results = calculateCoinsForGame(gameId);
+    results.forEach(res => {
+      if (coinsAccumulator[res.profile_id]) {
+        coinsAccumulator[res.profile_id].coins = res.coins;
+        coinsAccumulator[res.profile_id].hasPlayed = true;
+        coinsAccumulator[res.profile_id].score = res.score;
+      }
+    });
+
+    return Object.entries(coinsAccumulator)
+      .map(([profile_id, data]) => ({
+        profile_id,
+        ...data
+      }))
+      .sort((a, b) => {
+        // Sort by played status first, then by coins/score descending
+        if (a.hasPlayed && !b.hasPlayed) return -1;
+        if (!a.hasPlayed && b.hasPlayed) return 1;
+        return b.coins - a.coins;
+      });
+  };
+
+  const currentStandings = React.useMemo(() => {
+    if (activeGames.length === 0) return [];
+    const currentGame = activeGames[activeGameIndex];
+    if (!currentGame) return [];
+    return getGameTodayStandings(currentGame.id);
+  }, [activeGames, activeGameIndex, todayScores, members]);
+
+  const filteredChatMessages = React.useMemo(() => {
+    if (activeGames.length === 0) return chatMessages;
+    const currentGame = activeGames[activeGameIndex];
+    if (!currentGame) return chatMessages;
+
+    return chatMessages.filter(msg => {
+      // Keep all user chat messages
+      if (msg.message_type === 'user') return true;
+
+      // Keep non-game system messages (like group_rename)
+      let parsedSystemMsg: any = null;
+      try {
+        parsedSystemMsg = JSON.parse(msg.content);
+      } catch (e) {
+        return true; // Not JSON system message, keep it
+      }
+
+      const isGameSystemMsg = parsedSystemMsg && (
+        parsedSystemMsg.type === 'completed_word_grid' ||
+        parsedSystemMsg.type === 'completed_chess_grid' ||
+        parsedSystemMsg.type === 'completed_chess_grid_no_time' ||
+        parsedSystemMsg.type === 'completed_word_group'
+      );
+
+      if (!isGameSystemMsg) return true;
+
+      // It's a game score message. Check if it matches the current game.
+      const msgGameId = parsedSystemMsg.gameId;
+      
+      const isSameGameCategory = (g1: string, g2: string) => {
+        if (g1 === g2) return true;
+        const wordleIds = ['word_grid', 'wordle_es', 'la_palabra'];
+        if (wordleIds.includes(g1) && wordleIds.includes(g2)) return true;
+        return false;
+      };
+
+      return isSameGameCategory(msgGameId, currentGame.id);
+    });
+  }, [chatMessages, activeGames, activeGameIndex]);
+
+  const bestPlayer = currentStandings[0];
+
+  const getPlayerRank = (index: number) => {
+    if (index >= currentStandings.length) return 0;
+    const playerCoins = currentStandings[index].coins;
+    const higherCount = currentStandings.filter(s => s.coins > playerCoins).length;
+    return higherCount + 1;
+  };
+
+  // Dynamic Standing for logged-in user in the active game
+  const getUserTodayStanding = () => {
+    if (!profile) return 0;
+    if (activeGames.length === 0) return 0;
+    const currentGame = activeGames[activeGameIndex];
+    if (!currentGame) return 0;
+
+    const standings = getGameTodayStandings(currentGame.id);
+    const index = standings.findIndex(t => t.profile_id === profile.id);
+    return index !== -1 ? index + 1 : standings.length;
+  };
+
+  const userStanding = getUserTodayStanding();
 
   const updateLastRead = async () => {
     if (!user || !groupId) return;
@@ -500,21 +745,7 @@ export const GroupDetails = () => {
 
   const todayParticipants = getTodayParticipants();
 
-  // Dynamic Standing for logged-in user in this group
-  const getUserTodayStanding = () => {
-    if (!profile) return 0;
-    // Calculate global daily scores summation
-    const totals = members.map(m => {
-      const mScores = todayScores.filter(s => s.profile_id === m.id);
-      const sum = mScores.reduce((acc, curr) => acc + curr.score, 0);
-      return { profile_id: m.id, total: sum };
-    });
-    totals.sort((a, b) => b.total - a.total);
-    const index = totals.findIndex(t => t.profile_id === profile.id);
-    return index !== -1 ? index + 1 : totals.length;
-  };
 
-  const userStanding = getUserTodayStanding();
 
   // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -559,122 +790,27 @@ export const GroupDetails = () => {
     if (data) setArchiveSeasons(data);
   };
 
-  // ----------------------------------------------------
-  // Points calculation helper (Formula: Ending up last = 5 coins, ties lower points)
-  // ----------------------------------------------------
-  const calculateCoinsForGame = (gameId: string) => {
-    const isSameGameCategory = (scoreGameId: string, targetGameId: string) => {
-      if (scoreGameId === targetGameId) return true;
-      const wordleIds = ['word_grid', 'wordle_es', 'la_palabra'];
-      if (wordleIds.includes(scoreGameId) && wordleIds.includes(targetGameId)) return true;
-      return false;
-    };
-
-    // 1. Get scores for this specific game category
-    const gameScores = todayScores
-      .filter(s => isSameGameCategory(s.game_id, gameId))
-      .map(s => ({
-        profile_id: s.profile_id,
-        username: s.profiles.username,
-        avatar_url: s.profiles.avatar_url,
-        equipped_character_id: (s.profiles as any).equipped_character_id ?? null,
-        equipped_badge_id: (s.profiles as any).equipped_badge_id ?? null,
-        score: s.score,
-        solved_date: s.solved_date
-      }));
-
-    if (gameScores.length === 0) return [];
-
-    // Sort unique scores descending by score (higher score is better)
-    const sortedScores = [...gameScores].sort((a, b) => b.score - a.score);
-
-    // 4. Map each score to its coin allocation based on its rank
-    return gameScores.map(gs => {
-      let coinsGained = 15; // 15 instantly for playing
-      
-      // Position points: 5 * (total - position + 1)
-      const userScore = gs.score;
-      const higherCount = sortedScores.filter(s => s.score > userScore).length;
-      const position = higherCount + 1;
-      coinsGained += 5 * (sortedScores.length - position + 1);
-
-      return {
-        ...gs,
-        coins: coinsGained
-      };
-    }).sort((a, b) => b.score - a.score); // return sorted descending for presentation
-  };
-
-  // Global Standings combined for today (combining all active minigames)
-  const getGlobalTodayStandings = () => {
-    // For each active game, calculate coins
-    const coinsAccumulator: Record<string, { username: string; avatar_url: string | null; equipped_character_id?: string | null; equipped_badge_id?: string | null; coins: number }> = {};
-
-    // Initialize all members
-    members.forEach(m => {
-      coinsAccumulator[m.id] = {
-        username: m.username,
-        avatar_url: m.avatar_url,
-        equipped_character_id: m.equipped_character_id,
-        equipped_badge_id: m.equipped_badge_id,
-        coins: 0
-      };
-    });
-
-    activeGameIds.forEach(gameId => {
-      const results = calculateCoinsForGame(gameId);
-      results.forEach(res => {
-        if (coinsAccumulator[res.profile_id]) {
-          coinsAccumulator[res.profile_id].coins += res.coins;
-        }
-      });
-    });
-
-    return Object.entries(coinsAccumulator)
-      .map(([profile_id, data]) => ({
-        profile_id,
-        ...data
-      }))
-      .sort((a, b) => b.coins - a.coins);
-  };
-
-  const globalTodayStandings = getGlobalTodayStandings();
-  const bestPlayer = globalTodayStandings[0];
-
-  const getPlayerRank = (index: number) => {
-    if (index >= globalTodayStandings.length) return 0;
-    const playerCoins = globalTodayStandings[index].coins;
-    const higherCount = globalTodayStandings.filter(s => s.coins > playerCoins).length;
-    return higherCount + 1;
-  };
-
   const getPodiumStyle = (rank: number) => {
     if (rank === 1) {
       return {
         medal: '🥇',
         crown: true,
-        pedestalClass: 'w-14 h-12 bg-amber-300/60 rounded-t-lg flex items-center justify-center',
-        medalClass: 'text-sm font-black text-amber-700',
-        mbClass: '',
-        avatarSize: 'md' as const
+        avatarSize: 'md' as const,
+        containerClass: 'relative flex flex-col items-center -translate-y-3'
       };
     } else if (rank === 2) {
       return {
         medal: '🥈',
         crown: false,
-        pedestalClass: 'w-14 h-8 bg-slate-200/70 rounded-t-lg flex items-center justify-center',
-        medalClass: 'text-xs font-black text-slate-500',
-        mbClass: 'mb-1',
-        avatarSize: 'md' as const
+        avatarSize: 'sm' as const,
+        containerClass: 'relative flex flex-col items-center'
       };
     } else {
       return {
         medal: '🥉',
         crown: false,
-        pedestalClass: 'w-14 h-6 bg-orange-200/60 rounded-t-lg flex items-center justify-center',
-        medalClass: 'text-xs font-black text-orange-650',
-        mbClass: 'mb-2',
-        avatarSize: 'sm' as const
+        avatarSize: 'sm' as const,
+        containerClass: 'relative flex flex-col items-center'
       };
     }
   };
@@ -707,7 +843,11 @@ export const GroupDetails = () => {
 
           {/* Middle part: standing, gems, today participants — truly centered */}
           <div className="flex flex-col items-center text-center space-y-1">
-            <div className="flex items-center gap-2 bg-white/60 border border-white/50 px-3 py-1.5 rounded-full shadow-sm">
+            <Link
+              to={`/group/${groupId}/settings`}
+              onClick={() => triggerHapticClick()}
+              className="flex items-center gap-2 bg-white/60 hover:bg-white/80 border border-white/50 px-3 py-1.5 rounded-full shadow-sm transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
+            >
               <span className="text-xs font-black text-slate-800 flex items-center gap-1">
                 🏆 #{userStanding}
               </span>
@@ -716,7 +856,7 @@ export const GroupDetails = () => {
                 <img src={coinX3} alt="Gems" className="w-5 h-5 object-contain" />
                 {getUserGemsThisSeason()} {t('groupDetails.seasonGems')}
               </span>
-            </div>
+            </Link>
 
             {/* Overlapping avatars of users participating today */}
             <div className="flex -space-x-2.5 pt-0.5">
@@ -728,7 +868,7 @@ export const GroupDetails = () => {
                   title={part.username}
                 >
                   <AvatarViewer
-                    characterKey={getCosmeticKey(part.equipped_character_id)}
+                    avatarUrl={part.avatar_url}
                     badgeKey={getCosmeticKey(part.equipped_badge_id)}
                     size="xs"
                     borderClass="border-white"
@@ -823,157 +963,254 @@ export const GroupDetails = () => {
           <div className="h-1 w-12 bg-slate-800 mx-auto rounded-full mt-2" />
         </div>
 
-        {/* 3. GAMES GRID */}
-        <section className="space-y-3">
-          <div className="space-y-4">
-            {allGames.filter(g => activeGameIds.includes(g.id)).map(game => {
-              const gameResultCoins = calculateCoinsForGame(game.id);
-              const playedTodayCount = gameResultCoins.length;
-              const hasPlayed = todayScores.some(s => s.game_id === game.id && s.profile_id === profile?.id);
-
-              return (
-                <div
-                  key={game.id}
-                  className="bg-white/90 backdrop-blur-md rounded-[28px] p-4 shadow-sm flex flex-col gap-3 hover:shadow-md hover:scale-[1.01] transition-all duration-300 animate-fade-in max-w-[320px] mx-auto w-full"
-                >
-                  {/* Top Row: Preview Icon & Closes-In Timer */}
-                  <div className="flex justify-between items-center">
-                    {renderGamePreviewIcon(game.id, randomGrids[game.id])}
-
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
-                        {getGameCategoryTag(game.id)}
-                      </span>
-                      <span className="text-[10px] font-black text-slate-500 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {getCountdownTo(game.reset_time_utc)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Row: Played Count Stats & Minimal Flat Action Icon */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
-                    {/* Flat X/Y People text */}
-                    <button
-                      onClick={async () => {
-                        await triggerHapticClick();
-                        setShowPlayedModal({ gameId: game.id, gameName: game.id === 'wordle_es' || game.id === 'la_palabra' ? 'La Palabra del Día' : game.display_name });
-                      }}
-                      className="text-xs text-slate-500 font-extrabold hover:text-indigo-600 active:scale-95 transition-all flex items-center gap-1.5 hover:bg-slate-50 px-2.5 py-0.5 rounded-lg"
-                    >
-                      <span>{playedTodayCount}/{members.length}</span>
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
-
-                    {/* Flat Action Icon */}
-                    <div>
-                      {hasPlayed ? (
-                        <div className="text-emerald-600 flex items-center justify-center p-1" title={t('groupDetails.completed')}>
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handlePlayGame(game.id)}
-                          className="w-8 h-8 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-600 flex items-center justify-center hover:scale-110 active:scale-90 transition-all cursor-pointer shadow-sm border border-sky-100/50"
-                          title={t('dashboard.openGame', 'Play Game')}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-sky-600 ml-0.5">
-                            <polygon points="5 3 19 12 5 21 5 3"/>
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {activeGameIds.length === 0 && (
-              <div className="text-center py-10 bg-white/40 backdrop-blur-md rounded-[24px] border border-dashed border-slate-300 p-6 flex flex-col items-center justify-center space-y-2 mt-2">
-                <span className="text-2xl">🎮</span>
-                <p className="text-xs text-slate-500 font-bold">{t('groupDetails.noActiveGames')}</p>
+        {/* 3. GAMES CAROUSEL */}
+        {activeGames.length > 0 ? (
+          <section className="space-y-3">
+            <div className="relative w-full max-w-[360px] mx-auto flex flex-col items-center">
+              
+              {/* Carousel Viewport + Buttons Row */}
+              <div className="w-full flex items-center justify-between gap-1">
+                {/* Previous Button */}
                 <button
-                  onClick={() => navigate(`/group/${groupId}/manage-games`)}
-                  className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-all shadow-sm"
+                  onClick={() => {
+                    scrollToGame(activeGameIndex - 1);
+                    triggerHapticClick();
+                  }}
+                  disabled={activeGames.length <= 1}
+                  className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/50 flex items-center justify-center text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:pointer-events-none hover:bg-white active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer"
+                  title={t('carousel.prev', 'Previous')}
                 >
-                  {t('groupDetails.manageGames')}
+                  <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                </button>
+
+                {/* Carousel Container */}
+                <div
+                  ref={carouselRef}
+                  onScroll={handleScroll}
+                  className="flex-1 flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-1"
+                  style={{
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
+                  {activeGames.map((game) => {
+                    const gameResultCoins = calculateCoinsForGame(game.id);
+                    const playedTodayCount = gameResultCoins.length;
+                    const hasPlayed = todayScores.some(s => s.game_id === game.id && s.profile_id === profile?.id);
+
+                    return (
+                      <div
+                        key={game.id}
+                        className="w-full flex-shrink-0 snap-center px-2"
+                      >
+                        <div className="bg-white/90 backdrop-blur-md rounded-[28px] p-4 shadow-sm flex flex-col gap-3 hover:shadow-md hover:scale-[1.01] transition-all duration-300 w-full">
+                          {/* Top Row: Preview Icon & Closes-In Timer */}
+                          <div className="flex justify-between items-center">
+                            {renderGamePreviewIcon(game.id, randomGrids[game.id])}
+
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                                {getGameCategoryTag(game.id)}
+                              </span>
+                              <span className="text-[10px] font-black text-slate-500 flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {getCountdownTo(game.reset_time_utc)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Bottom Row: Played Count Stats & Action Button */}
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+                            {/* Flat X/Y People text */}
+                            <button
+                              onClick={async () => {
+                                await triggerHapticClick();
+                                setShowPlayedModal({
+                                  gameId: game.id,
+                                  gameName: game.id === 'wordle_es' || game.id === 'la_palabra' ? 'La Palabra del Día' : game.display_name
+                                });
+                              }}
+                              className="text-xs text-slate-500 font-extrabold hover:text-indigo-600 active:scale-95 transition-all flex items-center gap-1.5 hover:bg-slate-50 px-2.5 py-0.5 rounded-lg cursor-pointer"
+                            >
+                              <span>{playedTodayCount}/{members.length}</span>
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                            </button>
+
+                            {/* Flat Action Icon */}
+                            <div>
+                              {hasPlayed ? (
+                                <div className="text-emerald-600 flex items-center justify-center p-1" title={t('groupDetails.completed')}>
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handlePlayGame(game.id)}
+                                  className="w-8 h-8 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-600 flex items-center justify-center hover:scale-110 active:scale-90 transition-all cursor-pointer shadow-sm border border-sky-100/50"
+                                  title={t('dashboard.openGame', 'Play Game')}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-sky-600 ml-0.5">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => {
+                    scrollToGame(activeGameIndex + 1);
+                    triggerHapticClick();
+                  }}
+                  disabled={activeGames.length <= 1}
+                  className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/50 flex items-center justify-center text-slate-655 hover:text-slate-900 disabled:opacity-30 disabled:pointer-events-none hover:bg-white active:scale-95 transition-all shadow-sm flex-shrink-0 cursor-pointer"
+                  title={t('carousel.next', 'Next')}
+                >
+                  <ChevronRight className="w-5 h-5 stroke-[2.5]" />
                 </button>
               </div>
-            )}
+
+              {/* Indicator Dots */}
+              {activeGames.length > 1 && (
+                <div className="flex justify-center items-center gap-1.5 mt-2">
+                  {activeGames.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        scrollToGame(index);
+                        triggerHapticClick();
+                      }}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                        activeGameIndex === index ? 'w-4 bg-indigo-650' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+
+            </div>
+          </section>
+        ) : (
+          <div className="text-center py-10 bg-white/40 backdrop-blur-md rounded-[24px] border border-dashed border-slate-300 p-6 flex flex-col items-center justify-center space-y-2 mt-2">
+            <span className="text-2xl">🎮</span>
+            <p className="text-xs text-slate-500 font-bold">{t('groupDetails.noActiveGames')}</p>
+            <button
+              onClick={() => navigate(`/group/${groupId}/manage-games`)}
+              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-all shadow-sm"
+            >
+              {t('groupDetails.manageGames')}
+            </button>
           </div>
-        </section>
+        )}
 
         {/* 4. TODAY'S PODIUM — compact centered trophy layout, no label */}
-        {globalTodayStandings.length > 0 && bestPlayer && bestPlayer.coins > 0 && (
+        {currentStandings.length > 0 && bestPlayer && bestPlayer.coins > 0 && (
           <section className="pt-2 pb-4">
             {/* Trophy podium: 2nd | 1st | 3rd centered, different heights */}
-            <div className="flex justify-center items-end gap-4">
+            <div className="flex justify-center items-center gap-6 pt-6 pb-2">
 
               {/* 2nd place (rendered on the left, which is index 1) */}
-              {globalTodayStandings[1] && globalTodayStandings[1].coins > 0 ? (() => {
+              {currentStandings[1] && currentStandings[1].coins > 0 ? (() => {
                 const rank = getPlayerRank(1);
                 const style = getPodiumStyle(rank);
                 return (
-                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
-                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
-                    <div className="w-12 h-12 flex items-center justify-center">
+                  <div className={style.containerClass}>
+                    {/* Floating Avatar frame */}
+                    <div className="w-10 h-10 flex items-center justify-center relative bg-white/40 rounded-full p-0.5 border border-white/40 shadow-sm">
                       <AvatarViewer
-                        characterKey={getCosmeticKey(globalTodayStandings[1].equipped_character_id)}
-                        badgeKey={getCosmeticKey(globalTodayStandings[1].equipped_badge_id)}
+                        avatarUrl={currentStandings[1].avatar_url}
+                        badgeKey={getCosmeticKey(currentStandings[1].equipped_badge_id)}
                         size={style.avatarSize}
                       />
                     </div>
-                    <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[1].username}</span>
-                    <div className={style.pedestalClass}>
-                      <span className={style.medalClass}>{style.medal}</span>
+                    
+                    {/* Points Pill */}
+                    <div className="-mt-2.5 z-10">
+                      <div className="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/50 shadow-sm text-[10px] font-black text-slate-800">
+                        <span>{currentStandings[1].coins}</span>
+                        <img src={coinX3} alt="Gems" className="w-3.5 h-3.5 object-contain" />
+                      </div>
                     </div>
+
+                    {/* Username */}
+                    <span className="text-[9px] font-black text-slate-650 mt-1 truncate max-w-[64px] text-center">
+                      🥈 {currentStandings[1].username}
+                    </span>
                   </div>
                 );
-              })() : <div className="w-14" />}
+              })() : <div className="w-10" />}
 
               {/* 1st place (rendered in the center, which is index 0) */}
               {(() => {
                 const rank = getPlayerRank(0);
                 const style = getPodiumStyle(rank);
                 return (
-                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
-                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
-                    <div className="w-12 h-12 flex items-center justify-center">
+                  <div className={style.containerClass}>
+                    {/* Crown: positioned absolutely on top of the avatar, without animate-bounce */}
+                    {style.crown && (
+                      <span className="absolute -top-4 text-xl select-none z-15">👑</span>
+                    )}
+                    {/* Floating Avatar frame */}
+                    <div className="w-14 h-14 flex items-center justify-center relative bg-white/60 rounded-full p-0.5 border border-white/60 shadow-md">
                       <AvatarViewer
-                        characterKey={getCosmeticKey(bestPlayer.equipped_character_id)}
+                        avatarUrl={bestPlayer.avatar_url}
                         badgeKey={getCosmeticKey(bestPlayer.equipped_badge_id)}
                         size={style.avatarSize}
                       />
                     </div>
-                    <span className="text-[10px] font-black text-slate-800 truncate max-w-[64px] text-center">{bestPlayer.username}</span>
-                    <div className={style.pedestalClass}>
-                      <span className={style.medalClass}>{style.medal}</span>
+
+                    {/* Points Pill */}
+                    <div className="-mt-2.5 z-10">
+                      <div className="flex items-center gap-0.5 bg-white/95 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/60 shadow-md text-[11px] font-black text-slate-900 scale-105">
+                        <span>{bestPlayer.coins}</span>
+                        <img src={coinX3} alt="Gems" className="w-4 h-4 object-contain" />
+                      </div>
                     </div>
+
+                    {/* Username */}
+                    <span className="text-[10px] font-black text-slate-800 mt-1 truncate max-w-[72px] text-center">
+                      🥇 {bestPlayer.username}
+                    </span>
                   </div>
                 );
               })()}
 
               {/* 3rd place (rendered on the right, which is index 2) */}
-              {globalTodayStandings[2] && globalTodayStandings[2].coins > 0 ? (() => {
+              {currentStandings[2] && currentStandings[2].coins > 0 ? (() => {
                 const rank = getPlayerRank(2);
                 const style = getPodiumStyle(rank);
                 return (
-                  <div className={`flex flex-col items-center gap-1 ${style.mbClass}`}>
-                    {style.crown && <span className="text-xl select-none animate-bounce">👑</span>}
-                    <div className="w-8 h-8 flex items-center justify-center">
+                  <div className={style.containerClass}>
+                    {/* Floating Avatar frame */}
+                    <div className="w-10 h-10 flex items-center justify-center relative bg-white/40 rounded-full p-0.5 border border-white/40 shadow-sm">
                       <AvatarViewer
-                        characterKey={getCosmeticKey(globalTodayStandings[2].equipped_character_id)}
-                        badgeKey={getCosmeticKey(globalTodayStandings[2].equipped_badge_id)}
+                        avatarUrl={currentStandings[2].avatar_url}
+                        badgeKey={getCosmeticKey(currentStandings[2].equipped_badge_id)}
                         size={style.avatarSize}
                       />
                     </div>
-                    <span className="text-[9px] font-black text-slate-600 truncate max-w-[56px] text-center">{globalTodayStandings[2].username}</span>
-                    <div className={style.pedestalClass}>
-                      <span className={style.medalClass}>{style.medal}</span>
+
+                    {/* Points Pill */}
+                    <div className="-mt-2.5 z-10">
+                      <div className="flex items-center gap-0.5 bg-white/70 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/50 shadow-sm text-[10px] font-black text-slate-800">
+                        <span>{currentStandings[2].coins}</span>
+                        <img src={coinX3} alt="Gems" className="w-3.5 h-3.5 object-contain" />
+                      </div>
                     </div>
+
+                    {/* Username */}
+                    <span className="text-[9px] font-black text-slate-655 mt-1 truncate max-w-[64px] text-center">
+                      🥉 {currentStandings[2].username}
+                    </span>
                   </div>
                 );
-              })() : <div className="w-14" />}
+              })() : <div className="w-10" />}
 
             </div>
           </section>
@@ -985,7 +1222,7 @@ export const GroupDetails = () => {
 
           {/* Messages — flow naturally in the page scroll */}
           <div className="space-y-3">
-            {chatMessages.map((msg) => {
+            {filteredChatMessages.map((msg) => {
               const isSelf = msg.profile_id === profile?.id;
 
               let parsedSystemMsg: any = null;
@@ -1004,6 +1241,19 @@ export const GroupDetails = () => {
                 parsedSystemMsg.type === 'completed_word_group'
               );
 
+              const isGroupRenameMsg = parsedSystemMsg && parsedSystemMsg.type === 'group_rename';
+
+              if (msg.message_type === 'system' && isGroupRenameMsg) {
+                return (
+                  <div key={msg.id} className="flex justify-center text-center my-1 w-full animate-fade-in">
+                    <span className="text-[10px] bg-white/60 text-slate-655 font-bold px-3 py-1.5 rounded-full border border-slate-200/50 max-w-[90%] shadow-sm">
+                      <span className="text-slate-700 font-extrabold">{msg.profiles?.username || 'User'}</span>{' '}
+                      {t('systemMessages.group_rename', { newName: parsedSystemMsg.newName, defaultValue: `changed the group name to "${parsedSystemMsg.newName}"` })}
+                    </span>
+                  </div>
+                );
+              }
+
               if (msg.message_type === 'system' && !isGameSystemMsg) {
                 return (
                   <div key={msg.id} className="flex justify-center text-center my-1 w-full">
@@ -1018,7 +1268,7 @@ export const GroupDetails = () => {
                 <div key={msg.id} className={`flex gap-2.5 max-w-[85%] ${isSelf ? 'ml-auto flex-row-reverse' : ''}`}>
                   <div className="w-6 h-6 flex-shrink-0 mt-2">
                     <AvatarViewer
-                      characterKey={getCosmeticKey(msg.profiles?.equipped_character_id)}
+                      avatarUrl={msg.profiles?.avatar_url}
                       badgeKey={getCosmeticKey(msg.profiles?.equipped_badge_id)}
                       size="xs"
                     />
@@ -1049,7 +1299,7 @@ export const GroupDetails = () => {
               );
             })}
 
-            {chatMessages.length === 0 && (
+            {filteredChatMessages.length === 0 && (
               <p className="text-center text-xs text-slate-400 py-4">
                 {t('groupDetails.chatEmpty', 'No messages yet. Say hi! 👋')}
               </p>
@@ -1165,7 +1415,7 @@ export const GroupDetails = () => {
                 >
                   <div className="w-8 h-8 flex items-center justify-center">
                     <AvatarViewer
-                      characterKey={getCosmeticKey(playedUser.equipped_character_id)}
+                      avatarUrl={playedUser.avatar_url}
                       badgeKey={getCosmeticKey(playedUser.equipped_badge_id)}
                       size="sm"
                     />

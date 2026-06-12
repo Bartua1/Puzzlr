@@ -11,6 +11,7 @@ export interface Group {
   image_url?: string;
   invite_code_expires_at?: string;
   last_read_at?: string;
+  is_muted?: boolean;
 }
 
 export interface Standing {
@@ -31,7 +32,7 @@ export const useGroups = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('group_members')
-      .select('group_id, last_read_at, groups(*)')
+      .select('group_id, last_read_at, is_muted, groups(*)')
       .eq('profile_id', user.id);
 
     if (!error && data) {
@@ -40,7 +41,8 @@ export const useGroups = () => {
           if (!row.groups) return null;
           return {
             ...row.groups,
-            last_read_at: row.last_read_at
+            last_read_at: row.last_read_at,
+            is_muted: row.is_muted
           };
         })
         .filter((g) => g !== null) as Group[];
@@ -224,6 +226,27 @@ export const useGroups = () => {
     }));
   };
 
+  const updateMuteStatus = async (groupId: string, isMuted: boolean): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { error } = await supabase
+      .from('group_members')
+      .update({ is_muted: isMuted })
+      .eq('group_id', groupId)
+      .eq('profile_id', user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Update local state
+    setGroups(prev =>
+      prev.map((g) => (g.id === groupId ? { ...g, is_muted: isMuted } : g))
+    );
+
+    return { success: true };
+  };
+
   return {
     groups,
     loading,
@@ -231,6 +254,7 @@ export const useGroups = () => {
     joinGroup,
     getStandings,
     getGroupMembers,
+    updateMuteStatus,
     refreshGroups: fetchGroups,
   };
 };

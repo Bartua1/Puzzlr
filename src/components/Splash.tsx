@@ -76,7 +76,7 @@ export const Splash: React.FC<SplashProps> = ({
               <rect
                 className="puzzlr-body"
                 x="22"
-                y="32"
+                y="40"
                 width="56"
                 height="50"
                 rx="14"
@@ -84,7 +84,7 @@ export const Splash: React.FC<SplashProps> = ({
               />
               <path
                 className="puzzlr-shadow"
-                d="M22 42 L50 32 L78 42"
+                d="M22 50 L50 40 L78 50"
                 fill="#c084fc"
                 opacity="0.5"
               />
@@ -93,7 +93,7 @@ export const Splash: React.FC<SplashProps> = ({
               <circle
                 className="puzzlr-eye-left"
                 cx="40"
-                cy="54"
+                cy="62"
                 r="4"
                 fill="#ffffff"
               />
@@ -101,7 +101,7 @@ export const Splash: React.FC<SplashProps> = ({
               {/* Eye 2 (Fixed Wink) */}
               <path
                 className="puzzlr-eye-right"
-                d="M56 54 Q60 50 64 54"
+                d="M56 62 Q60 58 64 62"
                 stroke="#ffffff"
                 strokeWidth={3}
                 strokeLinecap="round"
@@ -112,7 +112,7 @@ export const Splash: React.FC<SplashProps> = ({
               <circle
                 className="puzzlr-cheek"
                 cx="34"
-                cy="62"
+                cy="70"
                 r="3.5"
                 fill="#f43f5e"
                 opacity="0.6"
@@ -120,7 +120,7 @@ export const Splash: React.FC<SplashProps> = ({
               <circle
                 className="puzzlr-cheek"
                 cx="66"
-                cy="62"
+                cy="70"
                 r="3.5"
                 fill="#f43f5e"
                 opacity="0.6"
@@ -129,7 +129,7 @@ export const Splash: React.FC<SplashProps> = ({
               {/* Smile */}
               <path
                 className="puzzlr-smile"
-                d="M46 62 Q50 66 54 62"
+                d="M46 70 Q50 74 54 70"
                 stroke="#ffffff"
                 strokeWidth={3.5}
                 strokeLinecap="round"
@@ -140,7 +140,7 @@ export const Splash: React.FC<SplashProps> = ({
             {/* Gold Crown (Separated for independent floating & bounce) */}
             <path
               className="puzzlr-crown"
-              d="M40 32 L44 22 L50 27 L56 22 L60 32 Z"
+              d="M40 40 L44 30 L50 35 L56 30 L60 40 Z"
               fill="#fbbf24"
               stroke="#d97706"
               strokeWidth={2}
@@ -202,26 +202,24 @@ const styles = `
     width: 100%;
     height: 100%;
     display: block;
-  }
-
-  /* Specific transform configurations */
-  .puzzlr-svg * {
-    transform-origin: center;
-    transform-box: fill-box;
+    overflow: visible;
   }
 
   .puzzlr-mascot {
-    transform-origin: 50px 57px;
+    transform-origin: 50px 65px;
+    transform-box: view-box;
     animation: puzzle-wobble-body 2.6s ease-in-out infinite;
   }
 
   .puzzlr-crown {
-    transform-origin: 50px 27px;
+    transform-origin: 50px 35px;
+    transform-box: view-box;
     animation: puzzle-wobble-crown 2.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
   }
 
   .puzzlr-eye-left {
-    transform-origin: 40px 54px;
+    transform-origin: 40px 62px;
+    transform-box: view-box;
     animation: puzzle-double-blink 2.6s infinite;
   }
 

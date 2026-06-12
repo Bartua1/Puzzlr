@@ -108,13 +108,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Error creating profile for OAuth user:', profileError);
           setProfile(null);
         } else {
-          // Seed default cosmetic unlock (Default Avatar)
-          await supabase
-            .from('user_cosmetics')
-            .insert({
-              profile_id: userId,
-              cosmetic_id: '11111111-1111-1111-1111-111111111111',
-            });
           setProfile(newProfile);
         }
       } else {
@@ -150,14 +143,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.user_metadata);
-      }
+    // Check initial session with a safety timeout to prevent hanging on first mobile launch
+    const sessionTimeout = setTimeout(() => {
+      console.warn('[useAuth] Session fetch timed out. Forcing loading state to false.');
       setLoading(false);
-    });
+    }, 6000);
+
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(sessionTimeout);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchProfile(session.user.id, session.user.user_metadata);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        clearTimeout(sessionTimeout);
+        console.error('[useAuth] Error fetching session:', err);
+        setLoading(false);
+      });
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

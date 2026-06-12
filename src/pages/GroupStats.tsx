@@ -681,7 +681,7 @@ export const GroupStats = () => {
                 {/* User Avatar */}
                 <div className="flex-shrink-0">
                   <AvatarViewer
-                    characterKey={cosmetics.find(c => c.id === member.equipped_character_id)?.asset_key || 'char_base'}
+                    avatarUrl={member.avatar_url}
                     badgeKey={cosmetics.find(c => c.id === member.equipped_badge_id)?.asset_key || ''}
                     size="md"
                   />
