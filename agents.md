@@ -26,11 +26,13 @@ To prevent trademark infringement, you must enforce these rules in all UI genera
 
 ```text
 ├── src/
-│   ├── components/       # UI (ShopCard, StandingsList, DisclaimerFooter)
-│   ├── hooks/            # useAuth, useDailyScores, useShop, useGroups
-│   ├── pages/            # Login, Dashboard, GroupDetails, Shop, Settings
-│   ├── services/         # supabase.ts (client), parser.ts (Regex engine)
+│   ├── components/       # UI (AvatarViewer, ClipboardAutoSubmitter, CreateGroupModal, DisclaimerFooter, GameCardView, Logo, Splash)
+│   ├── hooks/            # useAuth, useDailyScores, useGroups, useNotifications, useShop
+│   ├── pages/            # Login, Dashboard, GroupDetails, GroupSettings, GroupStats, ManageGames, Settings, Shop
+│   ├── services/         # supabase.ts (client), parser.ts (Regex parser for clipboard results)
+│   ├── utils/            # haptics.ts (wrapper for capacitor haptics)
 │   ├── App.tsx           # Router & auth layout wrapper
+│   ├── i18n.ts           # Internationalization config (En/Es translations)
 │   └── main.tsx          # App entry
 ```
 
@@ -39,7 +41,7 @@ To prevent trademark infringement, you must enforce these rules in all UI genera
 ## 3. Database Schema (Supabase)
 
 ```sql
--- 1. Profiles (Linked to Supabase Auth, handles customization and currency)
+-- 1. Profiles (Linked to Supabase Auth, handles customization, streaks, and currency)
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT UNIQUE NOT NULL,
@@ -47,16 +49,20 @@ CREATE TABLE profiles (
   language TEXT DEFAULT 'en' NOT NULL,
   lifetime_points INTEGER DEFAULT 0 NOT NULL,
   spendable_points INTEGER DEFAULT 0 NOT NULL,
-  equipped_character_id UUID REFERENCES cosmetics(id) ON DELETE SET NULL,
+  equipped_character_id UUID REFERENCES cosmetics(id) ON DELETE SET NULL, -- Deprecated/set to NULL
   equipped_badge_id UUID REFERENCES cosmetics(id) ON DELETE SET NULL,
+  streak_count INTEGER DEFAULT 0 NOT NULL,
+  last_played_date DATE,
+  streak_protectors INTEGER DEFAULT 0 NOT NULL,
+  is_admin BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Cosmetics Shop
+-- 2. Cosmetics Shop (Only type = 'badge' is currently active/used)
 CREATE TABLE cosmetics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('character', 'costume', 'badge')),
+  type TEXT NOT NULL CHECK (type IN ('badge', 'character', 'costume')),
   price INTEGER NOT NULL,
   asset_key TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true NOT NULL
@@ -72,9 +78,9 @@ CREATE TABLE user_cosmetics (
 
 -- 4. Games Configuration
 CREATE TABLE games (
-  id TEXT PRIMARY KEY, -- e.g., 'word_grid', 'word_group', 'chess_grid'
+  id TEXT PRIMARY KEY, -- e.g., 'word_grid', 'word_group', 'chess_grid', 'la_palabra', 'wordle_es'
   display_name TEXT NOT NULL,
-  reset_time_utc TIME NOT NULL, -- Defines daily reset schedule
+  reset_time_utc TIME NOT NULL, -- Defines daily reset schedule (defaults to 08:00:00 UTC)
   base_points INTEGER DEFAULT 10 NOT NULL
 );
 
@@ -84,6 +90,8 @@ CREATE TABLE groups (
   name TEXT NOT NULL,
   created_by UUID REFERENCES profiles(id),
   invite_code TEXT UNIQUE NOT NULL,
+  image_url TEXT,
+  invite_code_expires_at TIMESTAMP WITH TIME ZONE DEFAULT (timezone('utc'::text, now()) + interval '7 days'),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -92,6 +100,8 @@ CREATE TABLE group_members (
   group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  last_read_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  is_muted BOOLEAN DEFAULT false NOT NULL,
   PRIMARY KEY (group_id, profile_id)
 );
 
@@ -125,22 +135,50 @@ CREATE TABLE group_season_points (
   points INTEGER DEFAULT 0 NOT NULL,
   PRIMARY KEY (group_id, profile_id, season_id)
 );
+
+-- 10. Group Active Games
+CREATE TABLE group_games (
+  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+  game_id TEXT REFERENCES games(id) ON DELETE CASCADE,
+  added_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (group_id, game_id)
+);
+
+-- 11. Group Chat Messages (Chat & game completion notifications)
+CREATE TABLE group_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  message_type TEXT NOT NULL CHECK (message_type IN ('user', 'system')),
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 12. Streak Freezes (Track days on which a user's streak was protected)
+CREATE TABLE streak_freezes (
+  profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  freeze_date DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (profile_id, freeze_date)
+);
 ```
 
 ---
 
 ## 4. Key Logic & Flows to Implement
 
-### A. Point Distribution Transaction (Supabase Function)
-When a valid score is submitted, you must run a single transactional SQL function (`RPC`) to ensure data consistency:
-1.  Verify that `solved_date` is valid relative to the game's `reset_time_utc`.
-2.  Calculate dynamic reward points.
-3.  Add points to `profiles.lifetime_points` and `profiles.spendable_points`.
-4.  Identify all of the user's active group `seasons`.
-5.  Upsert and increment points in `group_season_points` for each active season.
+### A. Point Distribution & Streak Transaction (Supabase Function)
+When a valid score is submitted via `submit_daily_score_rpc`, you must run a single transactional SQL function to ensure data consistency:
+1.  Verify that `solved_date` is valid and the user hasn't already submitted a score for that game today.
+2.  Award 15 flat points to `profiles.lifetime_points` and `profiles.spendable_points`.
+3.  Calculate and update the user's consecutive play streak:
+    *   **New Streak / Consecutiveness:** If it is the user's first game or consecutive (1 day difference), increment `streak_count` and update `last_played_date`.
+    *   **Streak Protection:** If the user missed one or more days, check if they have enough `streak_protectors`. If yes, deduct the protectors, increment the streak, log the freeze dates in `streak_freezes`, and keep the streak alive. If no, reset `streak_count` to 1.
+4.  Construct game completion messages as a JSON string payload (e.g. including guesses/time/score) and insert them as `system` messages into `group_messages` (if the game is active in that group).
+5.  Identify all of the user's active group `seasons` and increment points in `group_season_points` for each season.
 
 ### B. Purchase Transaction (Supabase Function)
-When buying a cosmetic item from the shop:
+When buying a cosmetic item from the shop via `purchase_cosmetic_rpc`:
 1.  Read `cosmetics.price` and verify the buyer has enough `spendable_points` in their `profiles` row.
 2.  Deduct the price from `spendable_points`.
 3.  Insert a row linking the user and the item in `user_cosmetics`.
@@ -149,6 +187,10 @@ When buying a cosmetic item from the shop:
 *   Query the `games` table to fetch each game's `reset_time_utc`.
 *   On the UI, construct a countdown clock showing the remaining time until the next puzzle window starts.
 *   Disable the "Paste Score" button for that specific game category if a row for `(profile_id, game_id, current_solved_date)` already exists.
+
+### D. Admin Operations (Supabase Functions)
+*   **Admin Purchase (`admin_purchase_cosmetic_rpc`):** Allows users with `profiles.is_admin = true` to unlock any active cosmetic for free (skipping point deduction).
+*   **Admin Inventory Reset (`admin_reset_inventory_rpc`):** Allows admins to reset their cosmetic inventory, clearing unlocked user cosmetics and un-equipping items.
 
 ---
 
@@ -164,7 +206,7 @@ Before finalizing code or DB migrations, verify:
 ## 6. UI, UX, and Styling Guidelines
 
 ### A. Haptic Feedback System
-You must import and use `@capacitor/haptics` to provide subtle physical confirmation for user actions:
+You must import and use `@capacitor/haptics` (packaged in `src/utils/haptics.ts`) to provide subtle physical confirmation for user actions:
 *   **Standard Clicks & Navigation:** Trigger `Haptics.impact({ style: ImpactStyle.Light })` on menu tabs, generic buttons, and toggles.
 *   **Pasting/Score Submission:** Trigger `Haptics.notification({ type: NotificationType.Success })` upon a successful parsing match. Trigger `NotificationType.Error` if the clipboard string cannot be parsed.
 *   **Shop Purchases:** Trigger a `Medium` impact or `Success` notification when points are successfully spent on items.
@@ -187,6 +229,6 @@ Use a friendly, low-stress, pastel-themed Tailwind color configuration:
 
 ### D. Character Shop UX
 *   **Interactive Preview Panel:** Include a simple, clean playground area at the top of the shop page. 
-*   **Instant Feedback:** Let users tap on un-purchased costumes or badges to "preview" them instantly on their generic character base before confirming their spend points.
+*   **Instant Feedback:** Let users tap on un-purchased badges to "preview" them instantly on their profile/character base before confirming their spend points. Note that characters/costumes are deprecated and badges are the primary cosmetic item.
 
 When sharing the result of a game, it should suggest this app as a sharing option.

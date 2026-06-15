@@ -149,7 +149,7 @@ export const Splash: React.FC<SplashProps> = ({
           </svg>
         </div>
 
-        <h1 className="puzzlr-app-name">Puzzlr</h1>
+        <h1 className="font-bungee text-4xl text-amber-400 text-shadow-3d-amber tracking-normal mb-8 select-none z-10 relative">PUZZLR</h1>
       </div>
 
       {/* Progress Bar Container */}

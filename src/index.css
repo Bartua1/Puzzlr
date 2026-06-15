@@ -93,6 +93,9 @@
   --font-display-lg-mobile: "Quicksand", sans-serif;
   --font-headline-sm: "Quicksand", sans-serif;
   --font-display-lg: "Quicksand", sans-serif;
+  --font-bungee: "Bungee", cursive;
+  --font-space-mono: "Space Mono", monospace;
+  --font-outfit: "Outfit", sans-serif;
 
   /* Mockup Font Sizes & Line Heights */
   --text-headline-md: 24px;
@@ -221,4 +224,12 @@
   &::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
   }
+}
+
+@utility text-shadow-3d-amber {
+  text-shadow: 2px 2px 0px #d97706, 4px 4px 0px #78350f;
+}
+
+@utility text-shadow-3d-amber-dark {
+  text-shadow: 2px 2px 0px #b45309, 4px 4px 0px #1e1b4b;
 }

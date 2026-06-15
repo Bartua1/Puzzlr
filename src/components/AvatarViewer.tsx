@@ -381,6 +381,7 @@ export const AvatarViewer = ({
           <img 
             src={avatarUrl} 
             alt="Avatar" 
+            referrerPolicy="no-referrer"
             className="w-full h-full object-cover rounded-full" 
             onError={(e) => {
               e.currentTarget.onerror = null;

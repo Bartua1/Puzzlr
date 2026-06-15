@@ -26,6 +26,7 @@ import coinX3 from '../assets/coin_x3.svg';
 import { Browser } from '@capacitor/browser';
 import { AvatarViewer } from '../components/AvatarViewer';
 import { GameCardView } from '../components/GameCardView';
+import { GroupArchive } from './GroupArchive';
 
 interface GroupDetails {
   id: string;
@@ -270,7 +271,6 @@ export const GroupDetails = () => {
   const [newMessage, setNewMessage] = useState('');
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showPlayedModal, setShowPlayedModal] = useState<{ gameId: string; gameName: string } | null>(null);
-  const [archiveSeasons, setArchiveSeasons] = useState<any[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Carousel states & refs
@@ -795,20 +795,9 @@ export const GroupDetails = () => {
     }
   };
 
-  // Archive standings logic (load previous seasons)
   const openArchive = async () => {
     await triggerHapticClick();
     setShowArchiveModal(true);
-
-    // Load historical seasons
-    const { data } = await supabase
-      .from('seasons')
-      .select('*')
-      .eq('group_id', groupId)
-      .eq('is_active', false)
-      .order('end_date', { ascending: false });
-
-    if (data) setArchiveSeasons(data);
   };
 
   const getPodiumStyle = (rank: number) => {
@@ -1365,52 +1354,16 @@ export const GroupDetails = () => {
 
       {/* 8. ARCHIVE MODAL */}
       {showArchiveModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white text-slate-800 rounded-[32px] max-w-sm w-full p-6 space-y-5 shadow-2xl relative border border-slate-100">
-            <button
-              onClick={() => setShowArchiveModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-650"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center">
-              <h3 className="text-lg font-black text-slate-900 flex items-center justify-center gap-1.5 uppercase tracking-tight">
-                <History className="w-5 h-5 text-indigo-650" /> {t('groupDetails.archiveModalTitle')}
-              </h3>
-            </div>
-
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {archiveSeasons.map((histSeason) => (
-                <div
-                  key={histSeason.id}
-                  className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs space-y-1"
-                >
-                  <div className="flex justify-between items-center font-black">
-                    <span>{t('groupDetails.season')}: {new Date(histSeason.start_date).toLocaleDateString()}</span>
-                    <span className="text-[10px] text-slate-400">{t('groupDetails.ended')}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    {histSeason.start_date} {t('groupDetails.to')} {histSeason.end_date}
-                  </p>
-                </div>
-              ))}
-
-              {archiveSeasons.length === 0 && (
-                <div className="text-center py-8 text-slate-400 font-medium text-xs">
-                  {t('groupDetails.noArchiveData')}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowArchiveModal(false)}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-2xl transition-all text-xs"
-            >
-              {t('groupDetails.close')}
-            </button>
-          </div>
-        </div>
+        <GroupArchive
+          groupId={groupId!}
+          onClose={() => setShowArchiveModal(false)}
+          members={members}
+          allGames={allGames}
+          activeGameIds={activeGameIds}
+          cosmetics={cosmetics}
+          season={season}
+          profile={profile}
+        />
       )}
 
       {/* 9. PLAYED MODAL (Who completed minigame today) */}

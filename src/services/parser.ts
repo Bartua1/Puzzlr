@@ -11,10 +11,10 @@ export function parseShareText(text: string): ParsedScore | null {
 
   // 1. Daily Word Grid (Wordle-like)
   // Format: Wordle 1,234 4/6 or Wordle 1234 X/6
-  const wordleRegex = /(?:Wordle|Daily\s+Word\s+Grid)\s*([\d,]+)\s+([1-6xX])\/6/i;
+  const wordleRegex = /(?:Wordle|Daily\s+Word\s+Grid)\s*#?([\d,.]+)\s+([1-6xX])\/6/i;
   const wordleMatch = cleanText.match(wordleRegex);
   if (wordleMatch) {
-    const puzzleNumber = wordleMatch[1].replace(/,/g, '');
+    const puzzleNumber = wordleMatch[1].replace(/[,.]/g, '');
     const scoreChar = wordleMatch[2].toUpperCase();
     const score = scoreChar === 'X' ? 0 : parseInt(scoreChar, 10);
     return {
@@ -28,10 +28,10 @@ export function parseShareText(text: string): ParsedScore | null {
 
   // 1.5 Spanish Wordle (La palabra del día)
   // Format: La palabra del día #1614 3/6 or La palabra del día #1614 X/6
-  const laPalabraRegex = /(?:La\s+palabra\s+del\s+d[ií]a)\s*#?([\d,]+)\s+([1-6xX])\/6/i;
+  const laPalabraRegex = /(?:La\s+palabra\s+del\s+d[ií]a)\s*#?([\d,.]+)\s+([1-6xX])\/6/i;
   const laPalabraMatch = cleanText.match(laPalabraRegex);
   if (laPalabraMatch) {
-    const puzzleNumber = laPalabraMatch[1].replace(/,/g, '');
+    const puzzleNumber = laPalabraMatch[1].replace(/[,.]/g, '');
     const scoreChar = laPalabraMatch[2].toUpperCase();
     const score = scoreChar === 'X' ? 0 : parseInt(scoreChar, 10);
     return {
@@ -45,10 +45,10 @@ export function parseShareText(text: string): ParsedScore | null {
 
   // 2. Group Categorization Game (Connections-like)
   // Format: Connections Puzzle #123 (or similar)
-  const connectionsRegex = /(?:Connections|Group\s+Categorization\s+Game)\s*(?:Puzzle\s*)?#?([\d,]+)/i;
+  const connectionsRegex = /(?:Connections|Group\s+Categorization\s+Game)\s*(?:Puzzle\s*)?#?([\d,.]+)/i;
   const connectionsMatch = cleanText.match(connectionsRegex);
   if (connectionsMatch) {
-    const puzzleNumber = connectionsMatch[1].replace(/,/g, '');
+    const puzzleNumber = connectionsMatch[1].replace(/[,.]/g, '');
     // Count how many categories were correctly solved.
     // In Connections, each successful category has a row of 4 of the same colored square emoji.
     // Colors: 🟨 (yellow), 🟩 (green), 🟦 (blue), 🟪 (purple)
@@ -89,10 +89,10 @@ export function parseShareText(text: string): ParsedScore | null {
 
   // 3. Queen's Grid (Queens-like)
   // Format: Queens #45 (solved in 1:23) or Queens #45
-  const queensRegex = /(?:Queens|Queen's\s+Grid|Queens\s+Grid|Chess\s+Puzzle)\s*#?([\d,]+)(?:\s*-\s*(\d+):(\d+))?/i;
+  const queensRegex = /(?:Queens|Queen's\s+Grid|Queens\s+Grid|Chess\s+Puzzle)\s*#?([\d,.]+)(?:\s*-\s*(\d+):(\d+))?/i;
   const queensMatch = cleanText.match(queensRegex);
   if (queensMatch) {
-    const puzzleNumber = queensMatch[1].replace(/,/g, '');
+    const puzzleNumber = queensMatch[1].replace(/[,.]/g, '');
     let score = 10; // Default solve score
     
     // If time is parsed (min:sec), let's calculate a score where faster is better
