@@ -13,10 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   History,
-  TrendingUp,
-  Users
+  TrendingUp
 } from 'lucide-react';
-import { AvatarViewer } from '../components/AvatarViewer';
+
 
 interface ProfileSummary {
   id: string;
@@ -72,7 +71,6 @@ export const GroupArchive: React.FC<GroupArchiveProps> = ({
   members,
   allGames,
   activeGameIds,
-  cosmetics,
   season,
   profile
 }) => {
@@ -141,15 +139,7 @@ export const GroupArchive: React.FC<GroupArchiveProps> = ({
     }
   }, [selectedGameId, members]);
 
-  // Filtered scores depending on "This Season" vs "Historical"
-  const filteredScores = React.useMemo(() => {
-    if (isHistorical || !season) {
-      return archiveScores;
-    }
-    return archiveScores.filter(
-      (s) => s.solved_date >= season.start_date && s.solved_date <= season.end_date
-    );
-  }, [archiveScores, isHistorical, season]);
+
 
   // Guesses statistics logic
   const stats = React.useMemo(() => {
@@ -308,28 +298,7 @@ export const GroupArchive: React.FC<GroupArchiveProps> = ({
     };
   }, [archiveScores, selectedGameId, profile]);
 
-  // Format score for displaying in log list
-  const formatScoreDisplay = (
-    gameId: string,
-    score: number,
-    maxScore: number,
-    rawText: string
-  ) => {
-    if (gameId === 'word_grid' || gameId === 'wordle_es' || gameId === 'la_palabra') {
-      const guesses = score === 0 ? 'X' : String(7 - score);
-      return `${guesses}/6`;
-    } else if (gameId === 'chess_grid') {
-      const timeMatch = rawText?.match(/(\d+:\d+)/);
-      if (timeMatch) {
-        return timeMatch[0];
-      } else {
-        return `${score}/100`;
-      }
-    } else if (gameId === 'word_group') {
-      return `${score}/4`;
-    }
-    return `${score}/${maxScore}`;
-  };
+
 
   // Calendar render details
   const getCalendarDays = () => {

@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 
-enum SubmissionState {
+enum SubmissionState: Equatable {
     case parsing
     case loading(gameId: String, scoreText: String)
     case success(message: String)
@@ -28,18 +28,24 @@ class ShareViewModel: ObservableObject {
               let supabaseAnonKey = userDefaults?.string(forKey: "supabase_anon_key"),
               let accessToken = userDefaults?.string(forKey: "supabase_access_token"),
               !supabaseUrl.isEmpty, !supabaseAnonKey.isEmpty, !accessToken.isEmpty else {
-            self.state = .notAuthenticated
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                self.state = .notAuthenticated
+            }
             return
         }
         
         // 2. Parse score
         guard let parsedScore = parseShareText(text) else {
-            self.state = .notParsed
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                self.state = .notParsed
+            }
             return
         }
         
         let scoreText = "\(parsedScore.score) / \(parsedScore.maxScore)"
-        self.state = .loading(gameId: parsedScore.gameId, scoreText: scoreText)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            self.state = .loading(gameId: parsedScore.gameId, scoreText: scoreText)
+        }
         
         // 3. Submit score to Supabase
         Task {
@@ -55,13 +61,17 @@ class ShareViewModel: ObservableObject {
             await MainActor.run {
                 switch result {
                 case .success(let msg):
-                    self.state = .success(message: msg)
-                    // Auto-close after 1.5s
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                        self.state = .success(message: msg)
+                    }
+                    // Auto-close after 3.0s
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         self.onFinished?()
                     }
                 case .failure(let err):
-                    self.state = .error(message: err.localizedDescription)
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        self.state = .error(message: err.localizedDescription)
+                    }
                 }
             }
         }
@@ -98,6 +108,9 @@ struct LocalizedStrings {
 
 struct ShareView: View {
     @ObservedObject var viewModel: ShareViewModel
+    
+    @State private var successScale: CGFloat = 0.6
+    @State private var errorScale: CGFloat = 0.6
     
     private func t(_ key: String) -> String {
         return LocalizedStrings.translate(key, lang: viewModel.language)
@@ -154,6 +167,7 @@ struct ShareView: View {
             .background(Color(red: 248/255, green: 250/255, blue: 252/255)) // slate-50 background
             .cornerRadius(24)
             .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: viewModel.state)
         }
     }
     
@@ -178,6 +192,7 @@ struct ShareView: View {
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
             }
+            .transition(.opacity)
             
         case .loading(let gameId, let scoreText):
             VStack(spacing: 12) {
@@ -193,12 +208,20 @@ struct ShareView: View {
                     .font(.system(size: 13))
                     .foregroundColor(.gray)
             }
+            .transition(.opacity)
             
         case .success(let message):
             VStack(spacing: 12) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(Color(red: 19/255, green: 115/255, blue: 51/255)) // green-700
+                    .font(.system(size: 54))
+                    .foregroundColor(Color(red: 16/255, green: 185/255, blue: 129/255)) // Emerald green
+                    .scaleEffect(successScale)
+                    .onAppear {
+                        successScale = 0.6
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            successScale = 1.0
+                        }
+                    }
                     .padding(.bottom, 8)
                 Text(t("success"))
                     .font(.system(size: 18, weight: .bold))
@@ -206,15 +229,23 @@ struct ShareView: View {
                 Text(message)
                     .font(.system(size: 14))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color(red: 19/255, green: 115/255, blue: 51/255))
+                    .foregroundColor(Color(red: 16/255, green: 185/255, blue: 129/255))
                     .padding(.horizontal, 8)
             }
+            .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .opacity))
             
         case .error(let message):
             VStack(spacing: 12) {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(Color(red: 197/255, green: 34/255, blue: 31/255)) // red-700
+                    .font(.system(size: 54))
+                    .foregroundColor(Color(red: 239/255, green: 68/255, blue: 68/255)) // Red-500
+                    .scaleEffect(errorScale)
+                    .onAppear {
+                        errorScale = 0.6
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            errorScale = 1.0
+                        }
+                    }
                     .padding(.bottom, 8)
                 Text(t("submission_failed"))
                     .font(.system(size: 18, weight: .bold))
@@ -225,6 +256,7 @@ struct ShareView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal, 8)
             }
+            .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .opacity))
             
         case .notAuthenticated:
             VStack(spacing: 12) {
@@ -241,6 +273,7 @@ struct ShareView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal, 8)
             }
+            .transition(.opacity)
             
         case .notParsed:
             VStack(spacing: 12) {
@@ -257,6 +290,7 @@ struct ShareView: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal, 8)
             }
+            .transition(.opacity)
         }
     }
     

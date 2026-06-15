@@ -211,8 +211,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         clearTimeout(sessionTimeout);
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchProfile(session.user.id, session.user.user_metadata);
-          syncAuthToAppGroup(session);
+          // Defer to avoid concurrent deadlock issues on mount
+          setTimeout(() => {
+            fetchProfile(session.user.id, session.user.user_metadata);
+            syncAuthToAppGroup(session);
+          }, 0);
         } else {
           syncAuthToAppGroup(null);
         }
@@ -226,19 +229,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id, session.user.user_metadata);
-          syncAuthToAppGroup(session);
-        } else {
-          setProfile(null);
-          // Only clear credentials if we explicitly log out
-          if (event === 'SIGNED_OUT') {
-            syncAuthToAppGroup(null);
+      (event, session) => {
+        // Run in next tick of the event loop to release the auth lock before making DB calls
+        setTimeout(async () => {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id, session.user.user_metadata);
+            syncAuthToAppGroup(session);
+          } else {
+            setProfile(null);
+            // Only clear credentials if we explicitly log out
+            if (event === 'SIGNED_OUT') {
+              syncAuthToAppGroup(null);
+            }
           }
-        }
-        setLoading(false);
+          setLoading(false);
+        }, 0);
       }
     );
 
